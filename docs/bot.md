@@ -125,6 +125,7 @@ Always on:
 | 2026-11-21 | League, 32 matches (smoke test) | ghost 10.06 ± 1.28 vs practice mode 9.25 ± 1.40 in the same seat |
 | 2026-11-21 | League, 480 paired matches (seed 3) | ghost + laser duck + no mortar vs ghost: +0.21 ± 0.26; cover 45 m + finish at 50%: +0.19 ± 0.32; endgame at 3 alive / 360 s: −0.01 ± 0.07 |
 | 2026-11-21 | League, 480 paired matches (seed 5) | ghost v2 (duck, no mortar, cover 45 m, finish at 50%) vs ghost v1: +0.41 ± 0.34 (8.70 vs 8.29) |
+| 2026-11-21 | League, 480 paired matches each (seeds 7, 9), vs ghost v2 | loot/crates 70-90 m −0.05 ± 0.31; drops to 220 m −0.19 ± 0.14 (loss: drops are fight magnets); no drops +0.09 ± 0.16; loot 25 m +0.04 ± 0.33; quiet radius 100 m −0.15 ± 0.18. Ghost v2 kept as is. |
 | 2026-11-21 | League, 480 paired matches (seed 3), at candidate 12 | ghost 8.63 ± 0.40 vs practice mode 8.15 ± 0.41; paired +0.48 ± 0.44; survival 134 vs 122 s; wins 38 vs 47 |
 
 ## Submissions
