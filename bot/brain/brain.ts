@@ -957,8 +957,8 @@ export class Brain {
     // can't shoot it from here: walk to it
     if (!this.canHit(obs, tg)) return this.follow(obs, tg.pos)
     if (obs.t > this.strafeUntil) {
-      if (this.rand() < P.strafeFlip) this.strafeDir = -this.strafeDir
-      this.strafeUntil = obs.t + P.strafeMin + this.rand() * P.strafeSpan
+      this.strafeDir = this.rand() < 0.5 ? -1 : 1
+      this.strafeUntil = obs.t + 0.6 + this.rand() * 1.2
     }
     const radial = clamp((d - pref) / 25, -1, 1)
     let mx = ux * radial - uy * this.strafeDir * 0.9

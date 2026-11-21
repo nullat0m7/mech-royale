@@ -29,7 +29,8 @@ Rules live in `CLAUDE.md` and override this file. Design, decisions and the subm
 | `944ca5c` | 4.38 | submission 9: `dropSlack` 30 s; back to 6 |
 | `3a7229f` | pending | submission 10: `7a3a25a` plus `rangeGun` 100 m |
 | `d2453c4` | 4.31 | submission 11: laser duck, no mortar, FFA mode; practice parts reverted |
-| HEAD of `main` | pending | candidate 12: kill securing, damage-first upgrades, `lootRange` 260 |
+| `3a7455a` | 3.90 | submission 12: kill securing, damage-first upgrades, `lootRange` 260; reverted |
+| HEAD of `main` | expected 4.46 | 4.46 practice play plus FFA mode; the build to lock for the final if nothing beats it |
 
 ## 1. Next (2026-11-21)
 

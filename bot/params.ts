@@ -25,8 +25,8 @@ export const P = {
   swapGain: 0.4,
   /** Upgrade ids in the order we prefer them; unknown ids rank last. */
   upgradeOrder: [
-    "laser_damage", "gun_damage", "gun_rate", "lightning_efficiency", "laser_charge", "plating", "armor", "nanites",
-    "lightning_range", "gyros", "lightning_chain", "gun_velocity", "gun_mag", "mortar_reload",
+    "plating", "armor", "nanites", "laser_damage", "lightning_efficiency", "gun_damage", "laser_charge",
+    "gun_rate", "lightning_range", "gyros", "lightning_chain", "gun_velocity", "gun_mag", "mortar_reload",
     "servos", "capacitor", "reactor", "jets", "sensors", "laser_pierce", "mortar_splash", "mortar_velocity",
   ],
   /**
@@ -70,7 +70,7 @@ export const P = {
    * left in our line of fire and we still have `finishSelf` HP. A hunter we abandon regenerates (45 HP/s after 5 s,
    * protocol.md section 7) and comes back; a kill is a point (PATTERNS.md pattern 2).
    */
-  finishHp: 350,
+  finishHp: 0,
   finishSelf: 300,
   /** Retreat to cover below this HP fraction; fight again above reengage. */
   retreatHp: 0.4,
@@ -100,15 +100,8 @@ export const P = {
   farmHp: 0.6,
   npcRange: 170,
   crateRange: 90,
-  lootRange: 260,
+  lootRange: 170,
   cubeRange: 90,
-  /**
-   * Strafing in a fight: every `strafeMin` + U(0, `strafeSpan`) s, reverse with probability `strafeFlip`. Bullets take
-   * 0.4-0.9 s to cross 100-230 m (protocol.md section 7), so frequent reversals make a shooter who leads our velocity miss.
-   */
-  strafeMin: 0.6,
-  strafeSpan: 1.2,
-  strafeFlip: 0.5,
   /** Engagement range keeping by main weapon (meters). */
   rangeGun: 75,
   rangeLaser: 120,

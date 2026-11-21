@@ -4,10 +4,13 @@ Every change to the bot, the simulator and the project setup, newest first, with
 
 ## 2026-11-21
 
+### 4.46 practice behaviour + free-for-all mode
+- #12 (3.90) reverted: `finishHp` 0, plating-first upgrades, `lootRange` 170. Strafe draw back to the original code (the `strafe*` parameters are gone).
+
 ### Ghost v2 (free-for-all only; practice play unchanged)
 - Laser duck and no mortar in free-for-all mode; cover within 45 m; finish enemies at or below 50% HP. League: +0.41 ± 0.34 over ghost v1 (480 paired matches), and ghost v1 was +0.48 ± 0.44 over the practice brain.
 
-### Candidate 12 (pending): kill faster
+### `3a7455a`: kill faster. Practice **3.90** (submission 12)
 - Reverted from #11 (4.31): laser duck off, mortars valued again (1.2), `rangeGun` 75.
 - Kill securing: `finishHp` 350, `finishSelf` 300.
 - Upgrades: laser damage, gun damage, gun rate, lightning efficiency, laser charge, then plating, armor, nanites.
