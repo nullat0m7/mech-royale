@@ -369,7 +369,7 @@ export class Brain {
       act.jump = me.grounded
     }
     // a laser charging at us: break its line of sight if a spot close by hides us (hitscan can't be sidestepped)
-    const duck = !climbing && P.laserDuck ? this.laserDuck(obs) : null
+    const duck = !climbing && (P.laserDuck || (this.ghost && P.ghostDuck)) ? this.laserDuck(obs) : null
     if (duck) {
       move = this.dirTo(x, y, duck[0], duck[1])
       wantBoost = true
@@ -578,13 +578,13 @@ export class Brain {
   private chooseLoot(obs: Observation, range: number): { pos: number[]; d: number } | null {
     const P = this.P
     const held = obs.self.weapons.map((w) => w?.kind ?? null)
-    const worst = held.some((h) => h === null) ? 0 : Math.min(...held.map((h) => P.weaponPref[h!] ?? 0))
+    const worst = held.some((h) => h === null) ? 0 : Math.min(...held.map((h) => this.pref(h!)))
     const [x, y] = obs.self.pos
     let best: { pos: number[]; d: number } | null = null
     let bestV = 0
     for (const p of this.pickups.values()) {
       if (held.includes(p.kind as any)) continue
-      const gain = (P.weaponPref[p.kind!] ?? 0) - worst
+      const gain = this.pref(p.kind!) - worst
       if (gain < P.swapGain) continue
       const d = Math.hypot(p.pos[0] - x, p.pos[1] - y)
       if (d > range) continue
@@ -599,6 +599,12 @@ export class Brain {
     return best
   }
 
+  /** Loadout value of a weapon kind; in a free-for-all a mortar is never wanted (lasers cook it off, +60%). */
+  private pref(kind: string): number {
+    if (kind === "mortar" && this.ghost && this.P.ghostNoMortar) return -1
+    return this.P.weaponPref[kind] ?? 0
+  }
+
   private takeNearby(obs: Observation, act: Action) {
     const P = this.P
     const me = obs.self
@@ -608,7 +614,7 @@ export class Brain {
     for (const p of obs.pickups) {
       if (Math.hypot(p.pos[0] - me.pos[0], p.pos[1] - me.pos[1]) > reach || Math.abs(p.pos[2] - me.pos[2]) > 3.8) continue
       if (held.includes(p.kind)) continue
-      const v = P.weaponPref[p.kind] ?? 0
+      const v = this.pref(p.kind)
       if (v < 0) continue
       if (held[1] === null) {
         act.take = p.id
@@ -618,7 +624,7 @@ export class Brain {
         act.take = p.id
         return
       }
-      const w0 = P.weaponPref[held[0]!] ?? 0, w1 = P.weaponPref[held[1]!] ?? 0
+      const w0 = this.pref(held[0]!), w1 = this.pref(held[1]!)
       const slot = w0 <= w1 ? 0 : 1
       if (v - Math.min(w0, w1) >= P.swapGain) {
         act.take = p.id
@@ -627,7 +633,7 @@ export class Brain {
       }
     }
     // never carry a weapon we value below zero (a mortar: lasers cook it off)
-    const bad = held.findIndex((k) => k !== null && (P.weaponPref[k] ?? 0) < 0)
+    const bad = held.findIndex((k) => k !== null && this.pref(k) < 0)
     if (bad >= 0) act.drop = bad
   }
 

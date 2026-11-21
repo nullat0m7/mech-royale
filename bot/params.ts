@@ -18,6 +18,9 @@ export const P = {
    */
   laserDuck: false,
   duckR: 14,
+  /** In a free-for-all (ghost mode): laser duck on and no mortar (league +0.21 ± 0.26 over 480 paired matches). */
+  ghostDuck: true,
+  ghostNoMortar: true,
   /** Minimum loadout gain to walk to a pickup / swap a held weapon. */
   swapGain: 0.4,
   /** Upgrade ids in the order we prefer them; unknown ids rank last. */
@@ -38,9 +41,9 @@ export const P = {
   ghostQuietMove: 0.4,
   /** Ghost: hit by a mech within this many s counts as attacked; break line of sight if cover is this close, else fight. */
   ghostAttackedS: 2,
-  ghostCoverDist: 25,
+  ghostCoverDist: 45,
   /** Ghost: finish a visible enemy at or below this HP fraction when we have this much and no other mech is this close. */
-  ghostFinishHp: 0.35,
+  ghostFinishHp: 0.5,
   ghostFinishSelfHp: 0.5,
   ghostFinishClear: 150,
   /** Ghost: loot, cube, crate and drop ranges, and how far other mechs must be from a drop. */

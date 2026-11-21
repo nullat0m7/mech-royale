@@ -69,3 +69,13 @@ test("a weapon valued below zero is never taken and is dropped when held", () =>
   o2.pickups = []
   assert.equal(brain.act(o2).drop, 1)
 })
+
+test("in a free-for-all a mortar is left on the ground; in practice it is taken", () => {
+  const ffa = new Brain(hello, world, nav, loadParams(undefined, { mode: "ffa" }))
+  const practice = new Brain(hello, world, nav, loadParams(undefined, { mode: "practice" }))
+  const o = structuredClone(recorded[0])
+  o.self.weapons = [o.self.weapons[0], null]
+  o.pickups = [{ id: 8001, kind: "mortar", pos: [...o.self.pos] }]
+  assert.equal(ffa.act(structuredClone(o)).take, undefined)
+  assert.equal(practice.act(structuredClone(o)).take, 8001)
+})

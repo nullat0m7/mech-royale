@@ -56,10 +56,10 @@ Each decision the brain picks one mode, in this order:
 Kill securing (2026-11-21): below the retreat line, keep fighting a mech with at most `finishHp` HP left in our line of fire while we have `finishSelf` HP.
 
 Free-for-all ("ghost", 2026-11-21): when at least 2 mechs we did not kill are dead by 150 s (house bots never fight each other, so practice cannot do this), and until 4 are alive, the next circle is 70 m or t = 330 s:
-- Attacked by a mech in the last 2 s: go to cover if it is within 25 m (shooting back), else fight.
-- Finish a visible enemy at or below 35% HP in range when we have 50% and no other mech is within 150 m.
+- Attacked by a mech in the last 2 s: go to cover if it is within 45 m (shooting back), else fight.
+- Finish a visible enemy at or below 50% HP in range when we have 50% and no other mech is within 150 m.
 - A mech that can see us: move out of its sight, facing it. Otherwise collect cubes and weapons within 40 m, take a drop within 120 m with no mech near it, shoot crates within 60 m when no mech was heard for 10 s, rotate early, hold beside a wall. No drone farming. Below 5 m/s when a mech is within 60 m or was heard near/mid (silent, §8).
-- Upgrades: plating, armor, nanites, sensors first.
+- Upgrades: plating, armor, nanites, sensors first. Laser duck on and mortars never held (FFA only, `ghostDuck`, `ghostNoMortar`); cover within 45 m; finish enemies at or below 50% HP.
 
 Always on:
 - Laser duck (2026-11-21): a visible mech charging a laser aimed at us sends us to the nearest walkable spot within 14 m it cannot see. Mortars are never taken and are dropped if held (cook-off).
@@ -123,6 +123,9 @@ Always on:
 | 2026-11-20 | Sim act() timing, 12 FFA matches, 1 worker | p50 0.00 ms, p99 0.15 ms, max 6.3 ms |
 | 2026-11-21 | Checks at candidate 11 | typecheck 0 errors; test 15/15 (fuzz 10 000 in auto and FFA mode); local check PASS 300/300 p99 0.9 ms; Docker check PASS 300/300 p99 5.6 ms, max 20.6 ms; sim 192 practice matches, 0 FFA activations, no exceptions |
 | 2026-11-21 | League, 32 matches (smoke test) | ghost 10.06 ± 1.28 vs practice mode 9.25 ± 1.40 in the same seat |
+| 2026-11-21 | League, 480 paired matches (seed 3) | ghost + laser duck + no mortar vs ghost: +0.21 ± 0.26; cover 45 m + finish at 50%: +0.19 ± 0.32; endgame at 3 alive / 360 s: −0.01 ± 0.07 |
+| 2026-11-21 | League, 480 paired matches (seed 5) | ghost v2 (duck, no mortar, cover 45 m, finish at 50%) vs ghost v1: +0.41 ± 0.34 (8.70 vs 8.29) |
+| 2026-11-21 | League, 480 paired matches (seed 3), at candidate 12 | ghost 8.63 ± 0.40 vs practice mode 8.15 ± 0.41; paired +0.48 ± 0.44; survival 134 vs 122 s; wins 38 vs 47 |
 
 ## Submissions
 
