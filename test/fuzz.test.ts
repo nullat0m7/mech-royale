@@ -10,7 +10,7 @@ import { gunzipSync } from "node:zlib"
 import { World } from "../bot/world/map.ts"
 import { Nav } from "../bot/world/nav.ts"
 import { Brain } from "../bot/brain/brain.ts"
-import { P } from "../bot/params.ts"
+import { loadParams } from "../bot/params.ts"
 import { rng } from "../bot/world/geom.ts"
 
 const ROOT = new URL("..", import.meta.url).pathname
@@ -62,11 +62,13 @@ function randomObs(r: () => number, tick: number): any {
   return o
 }
 
-test("brain survives 10 000 random observations with well-formed actions", () => {
+for (const mode of ["auto", "ffa"] as const)
+test(`brain survives 10 000 random observations with well-formed actions (mode ${mode})`, () => {
   const r = rng(12345)
-  let brain = new Brain(hello, world, nav, P)
+  const params = loadParams(undefined, { mode })
+  let brain = new Brain(hello, world, nav, params)
   for (let i = 0; i < 10000; i++) {
-    if (i % 500 === 0) brain = new Brain(hello, world, nav, P) // fresh memory now and then
+    if (i % 500 === 0) brain = new Brain(hello, world, nav, params) // fresh memory now and then
     const o = randomObs(r, i * 2)
     let a: any
     assert.doesNotThrow(() => (a = brain.act(o)), `tick ${i}`)

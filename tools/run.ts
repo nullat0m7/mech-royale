@@ -5,6 +5,12 @@
  *   node tools/run.ts --bot example                     # the kit baseline (1.15 on the real board)
  *   MECH_PARAMS='{"retreatHp":0.5}' node tools/run.ts   # A/B a parameter (same seeds = paired)
  *   node tools/run.ts --replay runs/m1.jsonl --matches 1 # write a replay for tools/viewer.html
+ *
+ * League (free-for-all against other copies of our bot and the sim's FFA bots, like the qualifying round and final):
+ *   node tools/run.ts --mode league --cand '{"mode":"ffa"}' --base '{"mode":"practice"}' --matches 160
+ * The candidate sits in slot seed % 16; the other 15 seats come from LEAGUE (archetypes) in a per-seed order.
+ * With --base the same seeds run again with the base bot in that seat, and the paired difference is printed.
+ * In league mode leave MECH_PARAMS unset: it would change every copy of our bot, not just the candidate.
  */
 import { gunzipSync } from "node:zlib"
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs"
@@ -15,15 +21,29 @@ import { Nav } from "../bot/world/nav.ts"
 import { makeBot } from "../bot/main.ts"
 import { Sim } from "../sim/engine.ts"
 import { botController, exampleFactory, ffaController, houseController } from "../sim/house.ts"
+import { rng } from "../bot/world/geom.ts"
 
 const ROOT = new URL("..", import.meta.url).pathname
 const ARENA = ROOT + "mechfight-kit/arena"
 
-type Opts = { matches: number; mode: string; bot: string; workers: number; seed: number; replay: string; verbose: boolean }
+type Opts = { matches: number; mode: string; bot: string; workers: number; seed: number; replay: string; verbose: boolean; cand: string; base: string }
+
+/**
+ * League seats besides the candidate: copies of our bot tuned as other teams' practice bots might be, the sim's
+ * FFA bot at expert aim (the "expert house bots" that fill empty final slots), and the kit example.
+ */
+export const LEAGUE: { name: string; n: number; params?: Record<string, unknown>; ffaTier?: number; example?: boolean; mirror?: boolean }[] = [
+  { name: "aggressor", n: 5, params: { mode: "practice" } },
+  { name: "sniper", n: 2, params: { mode: "practice", rangeGun: 170, rangeLaser: 220 } },
+  { name: "rusher", n: 2, params: { mode: "practice", weaponPref: { lightning: 4, laser: 2, gun: 1.5, mortar: 1 }, rangeLightning: 20, retreatHp: 0.25 } },
+  { name: "expertffa", n: 3, ffaTier: 3 },
+  { name: "survivor", n: 2, mirror: true },
+  { name: "example", n: 1, example: true },
+]
 type Result = { seed: number; place: number; points: number; cause: string; deathT: number; kills: number; cubes: number; hpEnd: number; times: number[]; errors: string[]; houseDead: number; trace?: string[]; stat?: Record<string, number> }
 
 function parse(argv: string[]): Opts {
-  const o: Opts = { matches: 48, mode: "practice", bot: "ours", workers: Math.max(1, availableParallelism() - 1), seed: 1, replay: "", verbose: false }
+  const o: Opts = { matches: 48, mode: "practice", bot: "ours", workers: Math.max(1, availableParallelism() - 1), seed: 1, replay: "", verbose: false, cand: "{}", base: "" }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i], v = argv[i + 1]
     if (a === "--matches") (o.matches = +v), i++
@@ -32,6 +52,8 @@ function parse(argv: string[]): Opts {
     else if (a === "--workers") (o.workers = +v), i++
     else if (a === "--seed") (o.seed = +v), i++
     else if (a === "--replay") (o.replay = v), i++
+    else if (a === "--cand") (o.cand = v), i++
+    else if (a === "--base") (o.base = v), i++
     else if (a === "-v") o.verbose = true
   }
   return o
@@ -42,18 +64,29 @@ function config(): any {
   return JSON.parse(lines[0]).config
 }
 
-export function playMatch(world: World, nav: Nav, cfg: any, seed: number, mode: string, bot: string, replay = ""): Result {
+export function playMatch(world: World, nav: Nav, cfg: any, seed: number, mode: string, bot: string, replay = "", cand: Record<string, unknown> = {}, mirror: Record<string, unknown> = cand): Result {
   // nav.blocked is mutated by bots (stuck blacklist); give each match a clean copy
   const nav2 = Object.create(nav) as Nav
   nav2.blocked = nav.blocked.slice()
   const sim = new Sim(cfg, world, nav2, seed)
   const slot = seed % 16
-  const factory = bot === "example" ? exampleFactory : makeBot
   const tiers = [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3]
   let ti = 0
+  // league: the 15 other seats in a per-seed order (identical for the candidate and the base run)
+  const seats = LEAGUE.flatMap((a) => Array.from({ length: a.n }, () => a))
+  const r = rng(seed * 7919 + 1)
+  for (let i = seats.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1))
+    ;[seats[i], seats[j]] = [seats[j], seats[i]]
+  }
   for (let i = 0; i < 16; i++) {
-    if (i === slot) sim.addMech(botController(bot, factory as any, ARENA))
-    else if (mode === "ffa") sim.addMech(ffaController(), 1 + (ti++ % 3))
+    if (i === slot) sim.addMech(botController(bot, bot === "example" ? (exampleFactory as any) : (h: any) => makeBot(h, cand), ARENA))
+    else if (mode === "league") {
+      const a = seats[ti++]
+      if (a.ffaTier !== undefined) sim.addMech(ffaController(), a.ffaTier)
+      else if (a.example) sim.addMech(botController(a.name, exampleFactory as any, ARENA))
+      else sim.addMech(botController(a.name, (h: any) => makeBot(h, a.mirror ? mirror : a.params), ARENA))
+    } else if (mode === "ffa") sim.addMech(ffaController(), 1 + (ti++ % 3))
     else sim.addMech(houseController(), tiers[ti++])
   }
   const frames: string[] = []
@@ -69,10 +102,28 @@ export function playMatch(world: World, nav: Nav, cfg: any, seed: number, mode: 
   const trace: string[] = []
   const ctl = sim.mechs[slot].ctl
   const origAct = ctl.act
+  const st = sim.mechs[slot].stat
   ctl.act = (s, m, obs) => {
+    // damage taken and decisions per brain state (the state chosen on the previous decision was active while it landed)
+    const prev = (ctl as any).bot?.brain?.state ?? "start"
+    for (const e of obs!.events)
+      if (e.type === "damaged" && e.weapon !== "zone") {
+        st[`dmg:${prev}`] = (st[`dmg:${prev}`] ?? 0) + e.amount
+        st[`dmgW:${e.weapon}`] = (st[`dmgW:${e.weapon}`] ?? 0) + e.amount
+      }
+    for (const e of obs!.events) if (e.type === "effect" && e.effect === "cookoff") st.cookoffs = (st.cookoffs ?? 0) + 1
+    if (m.weapons.some((w) => w?.kind === "mortar")) st.mortarHeldS = (st.mortarHeldS ?? 0) + 0.1
     const t0 = performance.now()
     const a = origAct(s, m, obs)
     const dtMs = performance.now() - t0
+    const now = (ctl as any).bot?.brain?.state ?? "?"
+    st[`n:${now}`] = (st[`n:${now}`] ?? 0) + 1
+    if ((ctl as any).bot?.brain?.duck) st["n:duck"] = (st["n:duck"] ?? 0) + 1
+    // free-for-all detection: in practice it must never fire (count of matches, and the time it fired)
+    if ((ctl as any).bot?.brain?.ghost && st.ghostOn === undefined) {
+      st.ghostOn = 1
+      st.ghostAtS = s.t
+    }
     if (dtMs > 15 && s.tick > 0) s.log.push(`slow act ${dtMs.toFixed(0)} ms at t=${s.t.toFixed(1)} state ${(ctl as any).bot?.brain?.state}`)
     const b = (ctl as any).bot?.brain
     const tg = b?.curTarget >= 0 ? s.mechs[b.curTarget] : null
@@ -115,15 +166,12 @@ function summarize(rs: Result[], label: string) {
   if (errs.length) console.log(`  errors (${errs.length}): ${errs.slice(0, 3).join(" | ")}`)
 }
 
-if (isMainThread) {
-  const o = parse(process.argv.slice(2))
-  const seeds = process.env.SEEDS ? process.env.SEEDS.split(",").map(Number) : Array.from({ length: o.matches }, (_, i) => o.seed * 1000 + i)
-  const t0 = performance.now()
+async function batch(o: Opts, seeds: number[], cand: Record<string, unknown>, mirror: Record<string, unknown>): Promise<Result[]> {
   const results: Result[] = []
-  if (o.workers <= 1 || o.matches === 1) {
+  if (o.workers <= 1 || seeds.length === 1) {
     const world = World.load(ARENA), nav = new Nav(world), cfg = config()
     for (const s of seeds) {
-      const r = playMatch(world, nav, cfg, s, o.mode, o.bot, o.replay)
+      const r = playMatch(world, nav, cfg, s, o.mode, o.bot, o.replay, cand, mirror)
       if (o.verbose) console.log(`seed ${s}: place ${r.place} ${r.cause} at ${r.deathT.toFixed(0)} s, kills ${r.kills}\n    ${r.trace!.join("\n    ")}`)
       results.push(r)
     }
@@ -134,7 +182,7 @@ if (isMainThread) {
       chunks.map(
         (chunk) =>
           new Promise<void>((resolve, reject) => {
-            const w = new Worker(new URL(import.meta.url), { workerData: { seeds: chunk, mode: o.mode, bot: o.bot }, env: process.env })
+            const w = new Worker(new URL(import.meta.url), { workerData: { seeds: chunk, mode: o.mode, bot: o.bot, cand, mirror }, env: process.env })
             w.on("message", (r: Result) => {
               if (o.verbose) console.log(`seed ${r.seed}: place ${r.place} ${r.cause} at ${r.deathT.toFixed(0)} s, kills ${r.kills}`)
               results.push(r)
@@ -145,11 +193,29 @@ if (isMainThread) {
       ),
     )
   }
-  results.sort((a, b) => a.seed - b.seed)
-  summarize(results, `${o.bot} vs ${o.mode}`)
+  return results.sort((a, b) => a.seed - b.seed)
+}
+
+if (isMainThread) {
+  const o = parse(process.argv.slice(2))
+  const seeds = process.env.SEEDS ? process.env.SEEDS.split(",").map(Number) : Array.from({ length: o.matches }, (_, i) => o.seed * 1000 + i)
+  if (o.mode === "league" && process.env.MECH_PARAMS) console.error("warning: MECH_PARAMS changes every copy of our bot in the league; use --cand / --base")
+  const t0 = performance.now()
+  const cand = JSON.parse(o.cand)
+  const results = await batch(o, seeds, cand, cand)
+  summarize(results, `${o.bot} ${o.cand} vs ${o.mode}`)
+  if (o.base) {
+    // same seeds and the same field (mirrors stay the candidate), only the candidate's seat changes
+    const base = await batch(o, seeds, JSON.parse(o.base), cand)
+    summarize(base, `${o.bot} ${o.base} vs ${o.mode}`)
+    const d = results.map((r, i) => r.points - base[i].points)
+    const md = d.reduce((a, b) => a + b, 0) / d.length
+    const sd = Math.sqrt(d.reduce((a, b) => a + (b - md) ** 2, 0) / Math.max(1, d.length - 1))
+    console.log(`paired difference cand - base: ${md.toFixed(2)} ± ${((1.96 * sd) / Math.sqrt(d.length)).toFixed(2)} (95% CI) over ${d.length} seeds`)
+  }
   console.log(`  wall ${((performance.now() - t0) / 1000).toFixed(1)} s`)
 } else {
-  const { seeds, mode, bot } = workerData as { seeds: number[]; mode: string; bot: string }
+  const { seeds, mode, bot, cand, mirror } = workerData as { seeds: number[]; mode: string; bot: string; cand: Record<string, unknown>; mirror: Record<string, unknown> }
   const world = World.load(ARENA), nav = new Nav(world), cfg = config()
-  for (const s of seeds) parentPort!.postMessage(playMatch(world, nav, cfg, s, mode, bot))
+  for (const s of seeds) parentPort!.postMessage(playMatch(world, nav, cfg, s, mode, bot, "", cand, mirror))
 }

@@ -110,8 +110,11 @@ export class World {
     }
   }
 
-  /** Do trees block sight along a→b? Trunks block; crowns block when the path through them is long. */
-  treesBlock(a: number[], b: number[]): boolean {
+  /**
+   * Do trees block sight along a→b? Trunks block; crowns block when the path through them is long. With
+   * `crowns` false only trunks count: proximity sensors (within vision.near_range) see through canopy (protocol.md §8).
+   */
+  treesBlock(a: number[], b: number[], crowns = true): boolean {
     if (!this.nTrees) return false
     if (++this.treeStampN === 0xffffffff) {
       this.treeStamp.fill(0)
@@ -131,6 +134,7 @@ export class World {
         const o = i * 9
         const z = T[o + 2]
         if (segCylInterval(a, b, T[o], T[o + 1], z, z + T[o + 3], T[o + 6])) return true
+        if (!crowns) continue
         const iv = segCylInterval(a, b, T[o + 7], T[o + 8], z + T[o + 5], z + T[o + 3], T[o + 4])
         if (iv) {
           crown += (iv[1] - iv[0]) * len
@@ -141,9 +145,9 @@ export class World {
     return false
   }
 
-  /** Line of sight: what shots hit, plus trees. */
-  sightClear(a: number[], b: number[]): boolean {
-    return this.rayHit(a, b) > 1 && !this.treesBlock(a, b)
+  /** Line of sight: what shots hit, plus trees (trunks only when `crowns` is false, as for proximity sensors). */
+  sightClear(a: number[], b: number[], crowns = true): boolean {
+    return this.rayHit(a, b) > 1 && !this.treesBlock(a, b, crowns)
   }
 
   static load(dir: string): World {

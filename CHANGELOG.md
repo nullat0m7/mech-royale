@@ -2,6 +2,18 @@
 
 Every change to the bot, the simulator and the project setup, newest first, with the practice score when one exists. Practice scores are exact: the scorer replays the same 48 seeds, and the same code scored the same (4.44 twice). Design detail and the reasoning behind each decision live in `docs/bot.md`.
 
+## 2026-11-21
+
+### Candidate 11 (pending): laser duck, no mortar, free-for-all mode
+- Laser duck: a visible mech charging a laser at us sends us behind the nearest cover within 14 m.
+- Mortars are never taken and are dropped when held: a held mortar makes laser hits cook off for +60%.
+- Free-for-all ("ghost") mode for the qualifying round and final, gated on 2 deaths we did not cause by 150 s. Practice behaviour is unchanged when it does not fire.
+- Upgrade order in a free-for-all puts sensors fourth.
+- `loadParams` returns a copy (per-bot params); the A* wall-clock gate is now a 30 ms emergency brake only.
+- Simulator: house bots fire to full range, proximity vision ignores canopy, league mode (`--mode league`), calibration tool (`tools/calibrate.ts`), damage by state and weapon.
+- Tests: `test/brain.test.ts` (params copy, FFA detection on the real recording, no false detection, mortar rule); fuzz runs in auto and FFA mode.
+- Strafe timing is now parameters (`strafeMin`, `strafeSpan`, `strafeFlip`), same distribution as before.
+
 ## 2026-11-20
 
 ### Unreleased (pending submission 10)

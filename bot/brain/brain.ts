@@ -70,6 +70,9 @@ export class Brain {
   heardBearing = 0
   kills = 0
   ffa = false
+  /** Free-for-all detected early (P.ffaDetectT): play the ghost until the endgame. */
+  ghost = false
+  mechSoundT = -99 // last near or mid sound made by a mech
   // movement
   path: number[] | null = null
   pathIdx = 0
@@ -94,6 +97,8 @@ export class Brain {
   // laser
   laserHeld = 0
   curTarget = -1
+  duck: number[] | null = null
+  duckT = -99
 
   world: World
   nav: Nav
@@ -151,9 +156,13 @@ export class Brain {
         this.heardT = t
         this.heardBearing = s.bearing
       }
+      if (s.kind !== "npc_gun" && s.kind !== "crate" && s.kind !== "drop" && s.kind !== "death") this.mechSoundT = t
     }
     // other mechs died that we did not kill: a free-for-all, not the practice squad
     if (16 - obs.alive > this.kills + 1) this.ffa = true
+    const P = this.P
+    const mechs = (this.cfg.match.mechs as number) ?? 16
+    if (!this.ghost && (P.mode === "ffa" || (P.mode === "auto" && t <= P.ffaDetectT && mechs - obs.alive - this.kills >= P.ffaDeaths))) this.ghost = true
   }
 
   private hostiles(t: number): Track[] {
@@ -163,6 +172,10 @@ export class Brain {
   }
 
   // ------------------------------------------------------------------ helpers
+  /** Emergency stop for optional work in a pathological decision; never reached in normal play. */
+  private overBrake(): boolean {
+    return performance.now() - this.tickStart > this.P.brakeMs
+  }
   private eye(obs: Observation): number[] {
     const s = obs.self
     return [s.pos[0], s.pos[1], s.pos[2] + (s.stats.eye_height ?? 8)]
@@ -197,7 +210,7 @@ export class Brain {
     const t = obs.t
     this.remember(obs)
     const P = this.P
-    if (obs.offer) act.pick = pickUpgrade(P.upgradeOrder, obs.offer.choices.map((c) => c.id))
+    if (obs.offer) act.pick = pickUpgrade(this.ghost ? P.ghostUpgradeOrder : P.upgradeOrder, obs.offer.choices.map((c) => c.id))
 
     const hpFrac = me.hp / me.max_hp
     const hostiles = this.hostiles(t)
@@ -244,8 +257,10 @@ export class Brain {
     let face: number[] | null = null // yaw-only facing target (x, y)
     let fightTarget: Target | null = null
     let silent = false
+    let quiet = false
     let wantBoost = false
     let mode = "roam"
+    const ghostOn = this.ghost && !this.endgame(obs)
 
     // hostiles that can shoot us right now raise the bar for staying in a fight
     const exposed = hostiles.filter((h) => this.world.clear([h.pos[0], h.pos[1], h.pos[2] + 7], [x, y, me.pos[2] + 4.5])).length
@@ -254,8 +269,17 @@ export class Brain {
     if (zoneUrgent && zoneTarget) {
       mode = "zone"
       goal = zoneTarget
-      fightTarget = target
+      fightTarget = ghostOn && !(this.lastHitBy !== null && this.lastHitBy < 16 && t - this.lastHitT < P.ghostAttackedS) ? null : target
       wantBoost = true
+    } else if (ghostOn) {
+      const g = this.ghostChoose(obs, hostiles, target, hpFrac, zNow, next, zoneTarget)
+      mode = g.mode
+      goal = g.goal
+      fightTarget = g.fightTarget
+      face = g.face
+      quiet = g.quiet
+      silent = g.quiet
+      wantBoost = g.wantBoost
     } else if (target && canFight && !(this.state === "regen" && hpFrac < P.reengageHp && !recentlyHit)) {
       mode = "fight"
       fightTarget = target
@@ -272,11 +296,11 @@ export class Brain {
     }
 
     if (mode === "roam") {
-      const loot = this.chooseLoot(obs)
+      const loot = this.chooseLoot(obs, P.lootRange)
       const drop = this.chooseDrop(obs, hostileCount)
-      const cube = this.nearestCube(obs)
+      const cube = this.nearestCube(obs, P.cubeRange)
       const npc = !this.ffa || hostileCount === 0 ? this.chooseNpc(obs, hpFrac) : null
-      const crate = this.chooseCrate(obs, hpFrac)
+      const crate = this.chooseCrate(obs, hpFrac, P.crateRange)
       if (cube) {
         mode = "cube"
         goal = cube
@@ -312,7 +336,7 @@ export class Brain {
     if (fightTarget && !goal) {
       move = this.fightMove(obs, fightTarget)
       // grab cubes lying close by while fighting (kill drops)
-      const cube = this.nearestCube(obs)
+      const cube = this.nearestCube(obs, P.cubeRange)
       if (cube && Math.hypot(cube[0] - x, cube[1] - y) < P.fightCubeRange && hpFrac > P.retreatHp) {
         goal = cube
         move = this.follow(obs, cube)
@@ -322,6 +346,11 @@ export class Brain {
       move = d < 1.5 ? [0, 0] : this.follow(obs, goal)
       if (d > P.boostDist) wantBoost = true
       if (silent && d < 6) move = [move[0] * 0.4, move[1] * 0.4]
+    }
+    // ghost: below the step speed nobody hears us (protocol.md section 8)
+    if (quiet && !fightTarget) {
+      const l = Math.hypot(move[0], move[1])
+      if (l > P.ghostQuietMove) move = [(move[0] / l) * P.ghostQuietMove, (move[1] / l) * P.ghostQuietMove]
     }
     // trapped in a small enclosed region with the goal outside it: jet over the wall toward the goal
     let climbing = false
@@ -334,7 +363,14 @@ export class Brain {
       move = this.dirTo(x, y, climbGoal[0], climbGoal[1])
       act.jump = me.grounded
     }
-    const dodge = this.dodge(obs)
+    // a laser charging at us: break its line of sight if a spot close by hides us (hitscan can't be sidestepped)
+    const duck = !climbing && P.laserDuck ? this.laserDuck(obs) : null
+    if (duck) {
+      move = this.dirTo(x, y, duck[0], duck[1])
+      wantBoost = true
+      mode = `${mode}+duck`
+    }
+    const dodge = this.dodge(obs, !!duck)
     if (dodge[0] || dodge[1]) move = [move[0] + dodge[0] * 1.6, move[1] + dodge[1] * 1.6]
     const ml = Math.hypot(move[0], move[1])
     if (ml > 1) move = [move[0] / ml, move[1] / ml]
@@ -388,14 +424,153 @@ export class Brain {
     }
 
     // ---------------- debug
-    draw.label(`${mode}${this.ffa ? " ffa" : ""} hp ${Math.round(me.hp)}/${Math.round(me.max_hp)} e ${Math.round(me.energy)}${fightTarget ? ` → ${fightTarget.id}` : ""}`)
+    draw.label(`${mode}${this.ghost ? " ghost" : this.ffa ? " ffa" : ""} hp ${Math.round(me.hp)}/${Math.round(me.max_hp)} e ${Math.round(me.energy)}${fightTarget ? ` → ${fightTarget.id}` : ""}`)
     if (goal) draw.point([goal[0], goal[1], me.pos[2] + 1], "#40c0ff", 5)
     if (fightTarget) draw.line(this.muzzle(obs), this.center(fightTarget), "#ff5040")
     return act
   }
 
+  // ------------------------------------------------------------------ free-for-all ("ghost")
+  /** Endgame of a free-for-all: few mechs left or the circle small or late. Fight as in practice from here on. */
+  private endgame(obs: Observation): boolean {
+    const P = this.P
+    return obs.alive <= P.ghostEndAlive || obs.zone.next_radius <= P.ghostEndRadius || obs.t >= P.ghostEndT
+  }
+
+  /** Longest range among the weapons we hold (meters). */
+  private mainRange(obs: Observation): number {
+    let r = 0
+    for (const w of obs.self.weapons) if (w) r = Math.max(r, (w.stats.range as number) ?? (w.kind === "mortar" ? 220 : 0))
+    return r
+  }
+
+  /** Could tracked mech `h` see us now: within its proximity range, or inside its view wedge, with line of sight? */
+  private canSeeUs(obs: Observation, h: Track): boolean {
+    const V = this.cfg.vision
+    const me = obs.self
+    const dx = me.pos[0] - h.pos[0], dy = me.pos[1] - h.pos[1]
+    const d = Math.hypot(dx, dy)
+    if (d > (V.range as number) + 30) return false
+    if (d > (V.near_range as number) + 15 && Math.abs(wrap(Math.atan2(dy, dx) - h.aim[0])) > ((V.fov_deg as number) * Math.PI) / 360 + 0.2) return false
+    return this.world.clear([h.pos[0], h.pos[1], h.pos[2] + 8], [me.pos[0], me.pos[1], me.pos[2] + 4.5])
+  }
+
+  /**
+   * Free-for-all before the endgame. Other entries fight each other, and every mech that dies before us is a point
+   * (protocol.md section 4), so: fight only when attacked with no cover close by, or to finish a weak enemy nobody
+   * else is near; otherwise get out of sight, stay quiet, loot only close by and quietly, and rotate early.
+   */
+  private ghostChoose(obs: Observation, hostiles: Track[], target: Target | null, hpFrac: number, zNow: Circle, next: Circle, zoneTarget: number[] | null) {
+    const P = this.P
+    const t = obs.t
+    const [x, y] = obs.self.pos
+    const out = { mode: "hold", goal: null as number[] | null, fightTarget: null as Target | null, face: null as number[] | null, quiet: false, wantBoost: false }
+    out.quiet = t - this.mechSoundT < 3 || hostiles.some((h) => Math.hypot(h.pos[0] - x, h.pos[1] - y) < P.ghostQuietR)
+    // attacked: break line of sight when cover is close, else fight back
+    if (this.lastHitBy !== null && this.lastHitBy < 16 && t - this.lastHitT < P.ghostAttackedS) {
+      const cov = this.findCover(obs, hostiles, zNow, next)
+      out.quiet = false
+      if (target && Math.hypot(cov[0] - x, cov[1] - y) > P.ghostCoverDist) {
+        out.mode = "fight"
+        out.fightTarget = target
+        return out
+      }
+      out.mode = "gcover"
+      out.goal = cov
+      out.fightTarget = target
+      out.wantBoost = true
+      return out
+    }
+    // a weak enemy in range with nobody else near: finish it (its cubes, and one fewer to outlive)
+    if (hpFrac >= P.ghostFinishSelfHp) {
+      const range = this.mainRange(obs) * 0.8
+      for (const h of hostiles) {
+        if (h.hp > h.maxHp * P.ghostFinishHp) continue
+        if (Math.hypot(h.pos[0] - x, h.pos[1] - y) > range) continue
+        let alone = true
+        for (const o of this.tracks.values())
+          if (o.kind === "mech" && o.id !== h.id && t - o.seen < 5 && Math.hypot(o.pos[0] - x, o.pos[1] - y) < P.ghostFinishClear) alone = false
+        if (!alone) continue
+        const tg = this.targetOf(h)
+        if (!this.canHit(obs, tg)) continue
+        out.mode = "fight"
+        out.fightTarget = tg
+        out.quiet = false
+        return out
+      }
+    }
+    // someone can see us: get out of their sight, facing them
+    let watcher: Track | null = null
+    for (const h of hostiles) if (this.canSeeUs(obs, h) && (!watcher || Math.hypot(h.pos[0] - x, h.pos[1] - y) < Math.hypot(watcher.pos[0] - x, watcher.pos[1] - y))) watcher = h
+    if (watcher) {
+      out.mode = "hide"
+      out.goal = this.findCover(obs, hostiles, zNow, next)
+      out.face = [watcher.pos[0], watcher.pos[1]]
+      return out
+    }
+    // NPC drone shooting us: kill it
+    if (target && target.kind === "npc") {
+      out.mode = "fight"
+      out.fightTarget = target
+      return out
+    }
+    const cube = this.nearestCube(obs, P.ghostCubeR)
+    if (cube) {
+      out.mode = "cube"
+      out.goal = cube
+      return out
+    }
+    const loot = this.chooseLoot(obs, P.ghostLootR)
+    if (loot) {
+      out.mode = "loot"
+      out.goal = loot.pos
+      return out
+    }
+    const drop = this.ghostDrop(obs)
+    if (drop) {
+      out.mode = "drop"
+      out.goal = drop
+      out.wantBoost = true
+      return out
+    }
+    const quietArea = t - this.mechSoundT > 10 && ![...this.tracks.values()].some((o) => o.kind === "mech" && t - o.seen < 5 && Math.hypot(o.pos[0] - x, o.pos[1] - y) < P.ghostFinishClear)
+    const crate = quietArea ? this.chooseCrate(obs, hpFrac, P.ghostCrateR) : null
+    if (crate) {
+      out.mode = "crate"
+      out.fightTarget = crate
+      return out
+    }
+    if (zoneTarget) {
+      out.mode = "rotate"
+      out.goal = zoneTarget
+      return out
+    }
+    out.mode = "hold"
+    out.goal = this.campSpot(obs, next)
+    out.quiet = true
+    return out
+  }
+
+  /** A supply drop worth the risk in a free-for-all: close, and no other mech tracked near it. */
+  private ghostDrop(obs: Observation): number[] | null {
+    const P = this.P
+    const [x, y] = obs.self.pos
+    const speed = obs.self.stats.walk_speed ?? 11.7
+    for (const d of obs.drops) {
+      if (d.holder !== null && d.holder !== this.me) continue
+      const dist = Math.hypot(d.pos[0] - x, d.pos[1] - y)
+      if (dist > P.ghostDropR || dist / speed > d.lands_in + P.dropSlack) continue
+      let clear = true
+      for (const o of this.tracks.values())
+        if (o.kind === "mech" && obs.t - o.seen < 5 && Math.hypot(o.pos[0] - d.pos[0], o.pos[1] - d.pos[1]) < P.ghostDropClear) clear = false
+      if (!clear || !this.nav.reachable(x, y, d.pos[0], d.pos[1])) continue
+      return d.pos
+    }
+    return null
+  }
+
   // ------------------------------------------------------------------ behaviours
-  private chooseLoot(obs: Observation): { pos: number[]; d: number } | null {
+  private chooseLoot(obs: Observation, range: number): { pos: number[]; d: number } | null {
     const P = this.P
     const held = obs.self.weapons.map((w) => w?.kind ?? null)
     const worst = held.some((h) => h === null) ? 0 : Math.min(...held.map((h) => P.weaponPref[h!] ?? 0))
@@ -407,7 +582,7 @@ export class Brain {
       const gain = (P.weaponPref[p.kind!] ?? 0) - worst
       if (gain < P.swapGain) continue
       const d = Math.hypot(p.pos[0] - x, p.pos[1] - y)
-      if (d > P.lootRange) continue
+      if (d > range) continue
       if (!this.nav.reachable(x, y, p.pos[0], p.pos[1])) continue
       if (Math.abs(p.pos[2] - this.nav.h[this.nav.nearestGround(p.pos[0], p.pos[1], 0)]) > 3 && this.nav.roof[this.nav.cell(p.pos[0], p.pos[1])]) continue // on a roof
       const v = gain / (1 + d / 50)
@@ -429,6 +604,7 @@ export class Brain {
       if (Math.hypot(p.pos[0] - me.pos[0], p.pos[1] - me.pos[1]) > reach || Math.abs(p.pos[2] - me.pos[2]) > 3.8) continue
       if (held.includes(p.kind)) continue
       const v = P.weaponPref[p.kind] ?? 0
+      if (v < 0) continue
       if (held[1] === null) {
         act.take = p.id
         return
@@ -445,12 +621,61 @@ export class Brain {
         return
       }
     }
+    // never carry a weapon we value below zero (a mortar: lasers cook it off)
+    const bad = held.findIndex((k) => k !== null && (P.weaponPref[k] ?? 0) < 0)
+    if (bad >= 0) act.drop = bad
   }
 
-  private nearestCube(obs: Observation): number[] | null {
+  /**
+   * Nearest spot within P.duckR that hides us from a visible mech charging a laser aimed at us, or null. The
+   * spot is re-searched every 0.3 s (12 bearings x 4 distances, one ray each).
+   */
+  private laserDuck(obs: Observation): number[] | null {
+    const me = obs.self
+    const t = obs.t
+    const [x, y] = me.pos
+    let shooter: Track | null = null
+    for (const tr of this.tracks.values()) {
+      if (tr.kind !== "mech" || !tr.charging || t - tr.seen > 0.3) continue
+      const dx = x - tr.pos[0], dy = y - tr.pos[1]
+      const d = Math.hypot(dx, dy) || 1
+      if (d > 290) continue
+      const r = (me.stats.radius ?? 2.5) + 1.5
+      if (Math.abs(wrap(Math.atan2(dy, dx) - tr.aim[0])) > Math.atan2(r, d) + 0.03) continue
+      if (!this.world.clear([tr.pos[0], tr.pos[1], tr.pos[2] + 7], [x, y, me.pos[2] + 4.5])) continue
+      if (!shooter || d < Math.hypot(x - shooter.pos[0], y - shooter.pos[1])) shooter = tr
+    }
+    if (!shooter) {
+      this.duck = null
+      return null
+    }
+    if (this.duck && t - this.duckT < 0.3) return this.duck
+    this.duckT = t
+    const eye = [shooter.pos[0], shooter.pos[1], shooter.pos[2] + 7]
+    const nav = this.nav
+    const k0 = nav.cell(x, y)
+    let best: number[] | null = null
+    for (const r of [4, 7, 10, this.P.duckR]) {
+      for (let a = 0; a < 12; a++) {
+        const ang = (a / 12) * Math.PI * 2
+        const px = x + Math.cos(ang) * r, py = y + Math.sin(ang) * r
+        const k = nav.cell(px, py)
+        if (nav.roof[k] || nav.blocked[k] || nav.comp[k] !== nav.comp[k0]) continue
+        if (!nav.lineWalkable(x, y, px, py)) continue
+        if (this.world.clear(eye, [px, py, nav.h[k] + 4.5])) continue
+        best = [px, py]
+        break
+      }
+      if (best) break
+    }
+    this.duck = best
+    return best
+  }
+
+  private nearestCube(obs: Observation, range: number): number[] | null {
     const [x, y] = obs.self.pos
     let best: number[] | null = null
-    let bd = this.P.cubeRange
+    let bd = range
     for (const c of obs.cubes) {
       const d = Math.hypot(c.pos[0] - x, c.pos[1] - y)
       if (d < bd && this.nav.reachable(x, y, c.pos[0], c.pos[1])) {
@@ -477,11 +702,11 @@ export class Brain {
     return best
   }
 
-  private chooseCrate(obs: Observation, hpFrac: number): Target | null {
+  private chooseCrate(obs: Observation, hpFrac: number, range: number): Target | null {
     if (obs.t > this.P.farmUntil || hpFrac < this.P.farmHp) return null
     const [x, y] = obs.self.pos
     let best: Target | null = null
-    let bd = this.P.crateRange
+    let bd = range
     for (const c of obs.crates) {
       const d = Math.hypot(c.pos[0] - x, c.pos[1] - y)
       if (d < bd) {
@@ -540,7 +765,7 @@ export class Brain {
   /** Nearest reachable point that the tracked hostiles cannot see, staying in the zone. */
   private findCover(obs: Observation, hostiles: Track[], zNow: Circle, next: Circle): number[] {
     const t = obs.t
-    if (this.cover && t - this.coverT < 1.0) return this.cover
+    if (this.cover && (t - this.coverT < 1.0 || this.overBrake())) return this.cover
     const [x, y] = obs.self.pos
     const threats: number[][] = []
     for (const tr of this.tracks.values()) if (tr.kind === "mech" && t - tr.seen < 5) threats.push([tr.pos[0], tr.pos[1], tr.pos[2] + 8])
@@ -603,7 +828,7 @@ export class Brain {
     const t = obs.t
     const nav = this.nav
     const moved = Math.hypot(goal[0] - this.pathGoal[0], goal[1] - this.pathGoal[1])
-    const budgetOk = this.pathsThisTick === 0 && performance.now() - this.tickStart < this.P.pathBudgetMs
+    const budgetOk = this.pathsThisTick === 0 && !this.overBrake()
     if ((!this.path || moved > 6 || t - this.pathT > 3) && !budgetOk && (!this.path || moved > 30)) return this.dirTo(x, y, goal[0], goal[1])
     if ((!this.path || moved > 6 || t - this.pathT > 3) && budgetOk) {
       this.pathsThisTick++
@@ -651,7 +876,7 @@ export class Brain {
    */
   private peekSpot(obs: Observation, tg: Target, pref: number): number[] | null {
     const t = obs.t
-    if (t - this.peekT < 0.5) return this.peek
+    if (t - this.peekT < 0.5 || this.overBrake()) return this.peek
     this.peekT = t
     const [x, y] = obs.self.pos
     const others: number[][] = []
@@ -718,8 +943,8 @@ export class Brain {
     // can't shoot it from here: walk to it
     if (!this.canHit(obs, tg)) return this.follow(obs, tg.pos)
     if (obs.t > this.strafeUntil) {
-      this.strafeDir = this.rand() < 0.5 ? -1 : 1
-      this.strafeUntil = obs.t + 0.6 + this.rand() * 1.2
+      if (this.rand() < P.strafeFlip) this.strafeDir = -this.strafeDir
+      this.strafeUntil = obs.t + P.strafeMin + this.rand() * P.strafeSpan
     }
     const radial = clamp((d - pref) / 25, -1, 1)
     let mx = ux * radial - uy * this.strafeDir * 0.9
@@ -736,7 +961,7 @@ export class Brain {
   }
 
   /** Sidestep projectiles and mortar impacts heading for us; sidestep a laser aimed at us. */
-  private dodge(obs: Observation): number[] {
+  private dodge(obs: Observation, skipLaser = false): number[] {
     const me = obs.self
     const c = [me.pos[0], me.pos[1], me.pos[2] + 4.5]
     let ox = 0, oy = 0
@@ -778,7 +1003,7 @@ export class Brain {
       }
     }
     for (const tr of this.tracks.values()) {
-      if (tr.kind !== "mech" || !tr.charging || obs.t - tr.seen > 0.3) continue
+      if (skipLaser || tr.kind !== "mech" || !tr.charging || obs.t - tr.seen > 0.3) continue
       const bx = me.pos[0] - tr.pos[0], by = me.pos[1] - tr.pos[1]
       const d = Math.hypot(bx, by) || 1
       const off = Math.abs(wrap(Math.atan2(by, bx) - tr.aim[0]))

@@ -14,8 +14,9 @@ export function fallback(obs: Observation): Omit<Action, "tick"> {
   return { move: d < 5 || inside ? [0, 0] : [dx / d, dy / d], aim: obs.self.aim, boost: !obs.self.in_zone }
 }
 
-export function makeBot(hello: Hello) {
-  const P = loadParams(process.env.MECH_PARAMS)
+/** `overrides` lets the simulator run differently tuned copies of the bot in one process (league). */
+export function makeBot(hello: Hello, overrides?: Record<string, unknown>) {
+  const P = loadParams(process.env.MECH_PARAMS, overrides)
   let brain: Brain | null = null
   try {
     const t0 = performance.now()
@@ -42,4 +43,4 @@ export function makeBot(hello: Hello) {
   }
 }
 
-if (process.argv[1]?.endsWith("main.ts")) run(makeBot)
+if (process.argv[1]?.endsWith("main.ts")) run((h) => makeBot(h))

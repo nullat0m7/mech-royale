@@ -17,7 +17,8 @@ Behaviour column from `git diff <4.44 bot> <commit> -- bot/` (`65ce172` or `ecbe
 | `aeb2484` | `crateRange`, `cubeRange` 90 → 140 m | 4.35 | −0.09 | 209 |
 | `7a3a25a` | `dropMaxDist` 220 → 300 m | **4.46** | +0.02 | 214 |
 | `944ca5c` | `7a3a25a` plus `dropSlack` 6 → 30 s | 4.38 | −0.08 vs 4.46 | 210 |
-| HEAD | `7a3a25a` plus `rangeGun` 75 → 100 m | pending | | |
+| `3a7229f` | `7a3a25a` plus `rangeGun` 75 → 100 m | pending | | |
+| HEAD | `3a7229f` plus laser duck, mortar never held, FFA mode (inactive in practice) | pending | | |
 
 ## Patterns
 

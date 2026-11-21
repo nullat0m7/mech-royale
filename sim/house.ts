@@ -27,7 +27,8 @@ export const HOUSE: HouseTuning = {
   aimSigmaDeg: [1.5, 0.9, 0.5, 0.3],
   lead: [0.6, 0.9, 1, 1],
   strafe: [0, 0.4, 0.8, 1],
-  fireRange: [120, 150, 180, 200],
+  // full gun range for every tier: the real FFA recording (check stream) shows a bot gunning and lasering at 150 m
+  fireRange: [230, 230, 230, 230],
 }
 // HOUSE_PARAMS (JSON) overrides any field above, for calibration sweeps
 if (typeof process !== "undefined" && process.env.HOUSE_PARAMS) Object.assign(HOUSE, JSON.parse(process.env.HOUSE_PARAMS))
@@ -133,7 +134,7 @@ function shoot(sim: Sim, m: Mech, tgt: Mech, act: Cmd) {
     if (w.kind === "lightning" && d < 43 && err < 0.2) fire[s] = true
     if (w.kind === "laser") {
       if (w.charge > 0) fire[s] = !(w.charge >= m.wstats.laser.charge - 0.01 && err < 0.03)
-      else fire[s] = d < 250 && err < 0.2
+      else fire[s] = d < m.wstats.laser.range * 0.97 && err < 0.2
     }
     if (w.kind === "mortar" && d > 25 && d < 200 && err < 0.05) {
       const v = m.wstats.mortar.speed, g = m.wstats.mortar.gravity

@@ -9,7 +9,7 @@ The rules and limits are in `CLAUDE.md` and `protocol.md`. This file says how th
 | `Dockerfile` | The submitted image: `node:24.22.3-slim` pinned by digest, copies `package.json` and `bot/` only (`.dockerignore` is an allowlist). |
 | `bot/main.ts` | Entry. Builds the world model at `hello`, runs `Brain.act` per observation, falls back to "walk to zone, don't fire" if the brain throws. |
 | `bot/mechfight.ts` | The kit's TypeScript wrapper, copied verbatim from `mechfight-kit/ts/mechfight.ts`. |
-| `bot/params.ts` | Every tunable number. `MECH_PARAMS` (JSON) overrides them for simulator A/B runs; the image never sets it. |
+| `bot/params.ts` | Every tunable number. `loadParams` returns a copy; `MECH_PARAMS` (JSON) and per-bot overrides (league) merge into it. The image sets neither. |
 | `bot/world/map.ts` | Terrain (bilinear), prisms (spatial hash), `rayHit`/`clear` for shots, `sightClear` adding tree trunks and crowns for sight (trees never stop shots). |
 | `bot/world/nav.ts` | 2 m walk grid: surface height, roof flag, wall flag; A* with step-up and slope rules. |
 | `bot/world/geom.ts` | Angles, gun intercept, mortar ballistic pitch, point-in-polygon, seeded RNG. |
@@ -29,6 +29,8 @@ Run from the repo root. In Claude Code's sandbox, use `node --run`, never `npm` 
 | `node --run docker:build` | Builds the image for linux/amd64. |
 | `node --run check:docker` | Conformance check against the image with the match sandbox flags. |
 | `node --run verify` | All of the above in order. Run before every push that will be submitted. |
+| `node tools/run.ts --mode league --cand '{"mode":"ffa"}' --base '{"mode":"practice"}' --matches 160` | Free-for-all league (copies of our bot as other teams, sim expert FFA bots, kit example): candidate vs base on the same seeds and field, with the paired difference. Leave `MECH_PARAMS` unset. |
+| `node tools/calibrate.ts [--only a,b] [--matches 960]` | Replays every scored version as params on today's code and prints sim vs real with the rank correlation. `HOUSE_PARAMS` tries another house model. |
 | `node --run sim -- --matches 96 [--mode ffa] [--bot example] [-v]` | Local simulator: mean points with 95% CI, places, death causes, damage and accuracy, act() timing. `MECH_PARAMS='{"retreatHp":0.5}'` A/B-tests a parameter on the same seeds; `SEEDS=1001 TRACE_ALL=1 … -v --workers 1` prints a decision trace. Timing is only meaningful with `--workers 1` (parallel workers contend for CPU). |
 
 ## Simulator (`sim/`)
@@ -39,7 +41,7 @@ Run from the repo root. In Claude Code's sandbox, use `node --run`, never `npm` 
 - Position intel every 8 s.
 - Aim noise by tier (2.6°, 1.5°, 0.9°, 0.5°).
 
-It also has a simple free-for-all opponent and the kit's example bot. Every number in it is a guess. The kit example scores 0.98 in the sim against 1.15 on the real board, so treat sim results as a comparison between versions, not a forecast.
+It also has a simple free-for-all opponent and the kit's example bot. Every number in it is a guess. Since 2026-11-21 house bots fire to full weapon range, proximity vision ignores canopy (protocol §8), and per-match stats include damage taken by brain state and by weapon, laser-duck time and FFA-mode activations. The kit example scores 0.98 in the sim against 1.15 on the real board, so treat sim results as a comparison between versions, not a forecast.
 
 ## Behaviour
 
@@ -51,7 +53,14 @@ Each decision the brain picks one mode, in this order:
 4. `regen`: after a retreat (or, with `idleRegen`, whenever nothing is in view and HP is under 85%), stands still (silent) facing the last hit until `reengageHp` (85%) HP. Regen itself (45 HP/s after 5 s unharmed) also runs while roaming.
 5. Otherwise `roam`, choosing one of: walk onto visible cubes within 90 m; take a weapon that improves the loadout (laser 3, lightning 2.6, gun 1.6, mortar 1.2); go to a supply drop within 300 m if no hostile is in view and we can arrive within 6 s of landing; shoot NPC drones within 170 m and crates within 90 m (until 330 s, above 60% HP); rotate into the next circle; hold next to a wall inside it.
 
+Free-for-all ("ghost", 2026-11-21): when at least 2 mechs we did not kill are dead by 150 s (house bots never fight each other, so practice cannot do this), and until 4 are alive, the next circle is 70 m or t = 330 s:
+- Attacked by a mech in the last 2 s: go to cover if it is within 25 m (shooting back), else fight.
+- Finish a visible enemy at or below 35% HP in range when we have 50% and no other mech is within 150 m.
+- A mech that can see us: move out of its sight, facing it. Otherwise collect cubes and weapons within 40 m, take a drop within 120 m with no mech near it, shoot crates within 60 m when no mech was heard for 10 s, rotate early, hold beside a wall. No drone farming. Below 5 m/s when a mech is within 60 m or was heard near/mid (silent, §8).
+- Upgrades: plating, armor, nanites, sensors first.
+
 Always on:
+- Laser duck (2026-11-21): a visible mech charging a laser aimed at us sends us to the nearest walkable spot within 14 m it cannot see. Mortars are never taken and are dropped if held (cook-off).
 - Dodge: sidestep visible bullets passing within 4.5 m in the next 0.8 s, leave predicted mortar impacts, and sidestep a charging laser aimed at us.
 - Unstick: jump and jet when we barely move for 1 s; on every second stuck event, blacklist the next path cell for 20 s.
 - Upgrades: picked by `P.upgradeOrder` (plating, armor, nanites first).
@@ -85,6 +94,9 @@ Always on:
 - 2026-11-20: `dropMaxDist` 300 m (`7a3a25a`) scored 4.46, the first change to beat 4.44, so it stays. Candidate 9: `dropSlack` 6 → 30 s. `obs.drops` lists a drop until someone captures it (`protocol.md` §5 `drops`). Once it has landed, `lands_in` is 0, so the old rule (`brain.ts:505`: walk ETA ≤ `lands_in` + 6 s) chased landed drops only within about 70 m. With 30 s, a landed, untaken drop is chased within the 300 m `dropMaxDist`, and a falling one whenever we can arrive within 30 s of landing.
 - 2026-11-20: `dropSlack` 30 s (`944ca5c`) scored 4.38, below 4.46, so it goes back to 6. Chasing drops that have already landed, up to 300 m away, lost about 4 place-points. Candidate 10: `rangeGun` 75 → 100 m (gun without a laser only; drones are fought from the same range, crates stay at 40 m or less). `PATTERNS.md` pattern 1 shows the 3.98 long-range result was confounded with `idleRegen`, so long range has never been tested on its own. 100 m is a moderate step. It leaves more time to sidestep bullets (252 m/s: 0.40 s against 0.30 s at 75 m), and it stays outside lightning's 45 m range (`protocol.md` §7 Weapons).
 - 2026-11-20: tree occlusion (`World.sightClear`/`treesBlock`). Trunks block sight; crowns block when the path through them is longer than ln(1/canopyBlockT)/canopyDensity = 3.96 m (our reading of `rules`, unverified). The sim's vision uses it, and so do the bot's cover and peek searches (`treeCover`).
+- 2026-11-21: the final is decided in free-for-alls between qualifiers (track page), so the bot gets a free-for-all mode. It is gated so practice behaviour does not change: 0 activations in 192 sim practice matches; it activates at 22.7 s on the recorded real match.
+- 2026-11-21: sim calibration with house fire at full range: the `6df0e10` stack (real 3.98) still scores best in the sim (5.38 vs 3.63 for the 4.44 behaviour, 960 matches each), and also with near-perfect house aim (4.36 vs 3.18, 480 each). The sim cannot rank tactics; it stays a tool for bugs, timing and mechanisms.
+- 2026-11-21: candidate 11: laser duck plus never carrying a mortar. The real recording shows lasers doing 1260 of 1665 damage taken; the sim's house bots rarely laser (317 of 2600 per match), so the sim cannot measure it. Jinking (`strafeFlip` 1, 0.3-0.7 s) showed no sim change in damage taken and is not shipped.
 - 2026-11-20: the simulator drives bots in-process (`botController`), not over pipes. The protocol path is covered by `check.py` locally and in Docker; in-process runs are about 1.5 s per match.
 
 ## Measurements
@@ -106,6 +118,8 @@ Always on:
 | 2026-11-20 | Checks at candidate 9 (`dropSlack` 30 s) | typecheck 0 errors; test 10/10; local check PASS 300/300 p99 0.6 ms; Docker check PASS 300/300 p99 3.9 ms, max 9.7 ms; sim 96 matches, 8 workers, no exceptions, 2 zone deaths, cubes 3.9 vs 3.7 at 6 s (wiring check only); 12 matches, 1 worker: act() max 2.0 ms |
 | 2026-11-20 | Checks at candidate 10 (`rangeGun` 100 m) | typecheck 0 errors; test 10/10; local check PASS 300/300 p99 0.7 ms; Docker check PASS 300/300 p99 4.7 ms, max 14.1 ms; sim 96 matches, 8 workers, no exceptions, 4 zone deaths; 12 matches, 1 worker: act() max 4.2 ms |
 | 2026-11-20 | Sim act() timing, 12 FFA matches, 1 worker | p50 0.00 ms, p99 0.15 ms, max 6.3 ms |
+| 2026-11-21 | Checks at candidate 11 | typecheck 0 errors; test 15/15 (fuzz 10 000 in auto and FFA mode); local check PASS 300/300 p99 0.9 ms; Docker check PASS 300/300 p99 5.6 ms, max 20.6 ms; sim 192 practice matches, 0 FFA activations, no exceptions |
+| 2026-11-21 | League, 32 matches (smoke test) | ghost 10.06 ± 1.28 vs practice mode 9.25 ± 1.40 in the same seat |
 
 ## Submissions
 
