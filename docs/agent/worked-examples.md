@@ -10,7 +10,7 @@ Three samples, each with the reason it is good. Copy the shape, not the content.
 > - Check command named in `CLAUDE.md`: passed (N/N tests).
 > - Live check against the real provider: did not run. Not requested, and it needs your account.
 >
-> Committed `fix(settings): show saved value`, pushed to `dev`.
+> Committed `fix(settings): show saved value`, pushed to `main`.
 >
 > Needs you: none.
 

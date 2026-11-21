@@ -17,7 +17,7 @@ Then:
 
 4. Worked examples. Replace the weakest example in docs/agent/worked-examples.md with a better real one from this month, and say why it is better.
 
-5. Limits. Keep CLAUDE.md under 700 words by `wc -w` and its section order unchanged. Replace, never append. One statement of each rule, in one file. Never weaken a line under "How I work" without asking me. Keep the Git and Worktrees bullets identical to my other projects.
+5. Limits. Keep CLAUDE.md under 700 words by `wc -w` and its section order unchanged. Replace, never append. One statement of each rule, in one file. Never weaken a line under "How I work" without asking me. Keep the Git bullet as is: this project is `main` only (owner, 2026-11-20).
 
 6. Update the date in CLAUDE.md "Current focus" and the Status line from the code, not from plans. Update "Last run" at the top of docs/agent/maintenance.md.
 

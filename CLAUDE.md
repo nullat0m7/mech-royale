@@ -8,15 +8,14 @@ Follow literally. This file overrides every other doc, plan, and memory; on conf
 
 ## Who I am
 
-Solo owner-developer of mech-royale: a bot piloting one mech in a 16-mech battle royale over protocol `mechfight/1`, submitted as a Docker image. Language not chosen (kit: Python or TypeScript). Limits: 50 ms/tick, no runtime network, 1 CPU, 512 MB, writes only to `/tmp`, repo ≤20 MB. I optimize, in order: money and privacy safety, finished verified work, my attention, speed.
+Solo owner-developer of mech-royale: a bot piloting one mech in a 16-mech battle royale over protocol `mechfight/1`, submitted as a Docker image. Language not chosen (kit: Python or TypeScript). Not for money: I optimize the track score (joinbuilders.org/buildathon/tracks/builders): mean of 16 − place per match, 15 for a win, 0 for dying first. Survival beats kills. Baseline to beat: 1.15. Practice: 48 matches vs 15 cooperating house bots that hunt the weakest. Cutoff Sun 2026-11-22 11:00 ET. Limits: 50 ms/tick (late = no fire), 1 CPU, 512 MB, no runtime network, writes only to `/tmp`, repo ≤20 MB, build ≤10 min, pin versions, 4 submissions/hour. Then: finished verified work, my attention, speed.
 
 ## How I work
 
 - Do all of the request now. Leave nothing open: no "follow-ups", no "want me to…?". Fix every gap, unwired hook, stale doc, and unrun check found along the way.
-- Stop or ask only for: a secret, a dashboard or paid-account action, legal/tax/license sign-off, an unstated price/cap/limit, weakening a safety rule or test, anything irreversible outside `dev`. Name it. Everything else: decide, record one dated line in the area doc, continue.
+- Stop or ask only for: a secret, a dashboard or paid-account action, legal/tax/license sign-off, an unstated price/cap/limit, weakening a safety rule or test, anything irreversible (history rewrite, deleting pushed work). Name it. Everything else: decide, record one dated line in the area doc, continue.
 - Chat: answer first, terse fragments, no filler (caveman ultra). Code, docs, commits: plain prose.
-- Git: default branch `dev`. After each verified unit, without asking: commit task-only files (Conventional Commits, subject ≤50 chars), `git pull --rebase origin dev`, `git push origin dev`. Never push to or merge into `main` without the owner's explicit consent in chat for that specific change; changes reach `main` only through a PR the owner reviews. Never reset, force-push, publish, or promote production.
-- Worktrees (checkout under `.claude/worktrees/`): apply the Git bullet, committing on the worktree branch. When the owner says "back to src", "merge back" or similar, or you finish your assigned task: `git rebase dev` in the worktree (resolve conflicts there, rerun checks); in the main checkout on `dev`, `git merge --ff-only <branch>`, then pull and push as above. Then remove each finished worktree (branch merged into `dev`, tree clean): `git worktree remove <path>`, `git branch -d <branch>`; never `--force` or `-D`.
+- Git: `main` only. No other branches, worktrees, or PRs unless the owner explicitly asks. After each verified unit, without asking: commit task-only files on `main` (Conventional Commits, subject ≤50 chars), `git pull --rebase origin main`, `git push origin main`. Never reset, force-push, or rewrite pushed history.
 - Never print, commit, or request secrets.
 - Leave alone: files already modified at session start, ignored env files.
 - UI: reuse the existing components' patterns; no new visual language.
@@ -45,7 +44,8 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 | Any code edit | `docs/agent/quality-bar.md` |
 | Run, checks (`python3 check/check.py -- <bot cmd>` in `mechfight-kit/`), submit | `mechfight-kit/README.md` |
 | Rules, messages, map | `protocol.md`, `mechfight-kit/mechfight.schema.json` |
-| Finish, commit, worktrees | skills `close-out-unit`, `checkpoint-and-sync`, `merge-worktree-to-dev`, `clean-up-worktrees` |
+| Scoring, submission, deadline | https://www.joinbuilders.org/buildathon/tracks/builders |
+| Finish, commit | skills `close-out-unit`, `checkpoint-and-sync` (on `main`, per the Git bullet) |
 | Owner question, handoff, rules, "what's left" | skills `escalate-owner-decision`, `write-session-handoff`, `edit-agent-rules`, `audit-remaining-work` |
 | Refresh; examples | `docs/agent/maintenance.md`, `docs/agent/worked-examples.md` |
 
