@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replay viewer</title>
+<style>
+  :root { --bg: #111418; --fg: #d8dde3; --muted: #7a8490; --building: #2a3038; --zone: #4aa3ff; --me: #ffd23f; --house: #ff5a4e; --idle: #8a6a66; --dead: #444; --shot: #fff; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; }
+  header { display: flex; gap: 12px; align-items: center; padding: 8px 16px; flex-wrap: wrap; }
+  canvas { display: block; width: 100%; height: auto; }
+  input[type=range] { flex: 1; min-width: 160px; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <input type="file" id="file" accept=".jsonl,.json">
+  <button id="play">Play</button>
+  <input type="range" id="seek" min="0" max="0" value="0">
+  <span id="info" class="muted">Open a replay written by: node tools/run.ts --matches 1 --replay runs/m.jsonl</span>
+</header>
+<canvas id="c" width="1600" height="1100"></canvas>
+<script>
+// Top-down replay: buildings (darker = taller), zone circle, mechs (yellow = our bot, red = hunting
+// house bot, brown = idle house bot, grey = dead) with aim ticks, and projectiles.
+const cv = document.getElementById("c"), g = cv.getContext("2d")
+let head = null, frames = [], i = 0, playing = false
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
+document.getElementById("file").onchange = async (e) => {
+  const lines = (await e.target.files[0].text()).split("\n").filter((l) => l.trim())
+  head = JSON.parse(lines[0])
+  frames = lines.slice(1).map((l) => JSON.parse(l))
+  const seek = document.getElementById("seek")
+  seek.max = frames.length - 1
+  i = 0
+  draw()
+}
+document.getElementById("seek").oninput = (e) => { i = +e.target.value; draw() }
+document.getElementById("play").onclick = (e) => { playing = !playing; e.target.textContent = playing ? "Pause" : "Play"; if (playing) tick() }
+function tick() { if (!playing || !frames.length) return; i = Math.min(frames.length - 1, i + 2); document.getElementById("seek").value = i; draw(); if (i < frames.length - 1) setTimeout(tick, 33) }
+function draw() {
+  if (!head) return
+  const [x0, y0, x1, y1] = head.bounds
+  const s = Math.min(cv.width / (x1 - x0), cv.height / (y1 - y0))
+  const X = (x) => (x - x0) * s, Y = (y) => cv.height - (y - y0) * s
+  g.fillStyle = css("--bg"); g.fillRect(0, 0, cv.width, cv.height)
+  for (const p of head.prisms) {
+    g.fillStyle = css("--building"); g.globalAlpha = Math.min(1, 0.35 + p.top / 60)
+    g.beginPath()
+    for (let k = 0; k < p.ring.length; k += 2) (k ? g.lineTo : g.moveTo).call(g, X(p.ring[k]), Y(p.ring[k + 1]))
+    g.fill()
+  }
+  g.globalAlpha = 1
+  const f = frames[i]
+  g.strokeStyle = css("--zone"); g.lineWidth = 2
+  g.beginPath(); g.arc(X(f.z[0]), Y(f.z[1]), f.z[2] * s, 0, Math.PI * 2); g.stroke()
+  g.fillStyle = css("--shot")
+  for (const p of f.p) g.fillRect(X(p[0]) - 1, Y(p[1]) - 1, 2, 2)
+  for (const m of f.m) {
+    const [id, x, y, z, hp, yaw, alive, joined] = m
+    g.fillStyle = !alive ? css("--dead") : id === head.me ? css("--me") : joined ? css("--house") : css("--idle")
+    g.beginPath(); g.arc(X(x), Y(y), id === head.me ? 6 : 4, 0, Math.PI * 2); g.fill()
+    if (alive) {
+      g.strokeStyle = g.fillStyle; g.beginPath(); g.moveTo(X(x), Y(y)); g.lineTo(X(x + Math.cos(yaw) * 15), Y(y + Math.sin(yaw) * 15)); g.stroke()
+      g.fillText(`${id} ${hp}`, X(x) + 6, Y(y) - 6)
+    }
+  }
+  const me = f.m.find((m) => m[0] === head.me)
+  document.getElementById("info").textContent = `seed ${head.seed} · t ${f.t.toFixed(1)} s · our hp ${me ? me[4] : "?"} · alive ${f.m.filter((m) => m[6]).length}`
+}
+</script>
+</body>
+</html>

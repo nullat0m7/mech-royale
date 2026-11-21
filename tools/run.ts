@@ -84,7 +84,7 @@ export function playMatch(world: World, nav: Nav, cfg: any, seed: number, mode: 
   const me = sim.mechs[slot]
   if (replay) {
     mkdirSync(replay.split("/").slice(0, -1).join("/") || ".", { recursive: true })
-    writeFileSync(replay, JSON.stringify({ me: slot, seed }) + "\n" + frames.join("\n") + "\n")
+    writeFileSync(replay, JSON.stringify({ me: slot, seed, bounds: [world.minX, world.minY, world.maxX, world.maxY], prisms: world.prisms.map((p) => ({ top: p.top, ring: Array.from(p.ring, (v) => Math.round(v)) })) }) + "\n" + frames.join("\n") + "\n")
   }
   return {
     seed, place: me.place, points: 16 - me.place, cause: me.alive ? "alive" : me.deathCause, deathT: me.alive ? sim.t : me.deathT,
