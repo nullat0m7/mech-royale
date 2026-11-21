@@ -49,7 +49,7 @@ Each decision the brain picks one mode, in this order:
 2. `fight`: a hostile mech is in view and HP is at least 40% (+30% per extra hostile with a line of fire on us; 75% when 2 or more hostiles are near). Keeps a preferred range by weapon (gun 170 m, laser 210 m, lightning 28 m; at least 60 m from a lightning carrier when we hold a gun or laser) and strafes, flipping direction at random every 0.6–1.8 s.
 3. `retreat`: hostiles or recent hits while too weak to fight. Walks to the nearest sampled point that no tracked hostile can see, facing the threat.
 4. `regen`: after a retreat, or whenever nothing is in view and HP is under 85%, stands still (silent) facing the last hit until 85% HP.
-5. Otherwise `roam`, choosing one of: walk onto visible cubes; take a weapon that improves the loadout (laser 3, lightning 2.6, gun 1.6, mortar 1.2); go to a supply drop if no hostile is in view and we can arrive within 6 s of landing; shoot NPC drones within 170 m and crates within 90 m (until 330 s, above 60% HP); rotate into the next circle; hold next to a wall inside it.
+5. Otherwise `roam`, choosing one of: walk onto visible cubes; take a weapon that improves the loadout (laser 3, gun 2, lightning 1.3, mortar 1: gun plus laser fits the long-range game); go to a supply drop if no hostile is in view and we can arrive within 6 s of landing; shoot NPC drones within 170 m and crates within 90 m (until 330 s, above 60% HP); rotate into the next circle; hold next to a wall inside it.
 
 Always on:
 - Dodge: sidestep visible bullets passing within 4.5 m in the next 0.8 s, leave predicted mortar impacts, and sidestep a charging laser aimed at us.
@@ -74,6 +74,7 @@ Always on:
 - 2026-11-20: the GitHub repo is already public (`gh repo view`: PUBLIC).
 - 2026-11-20: sim squad calibrated to the first real score: one hunter joins per kill, aim σ 1.5/0.9/0.5/0.3°. Sim gives example 0.96 (real 1.15) and build `65ce172` 4.90 (real 4.44).
 - 2026-11-20: engagement range 170 m (gun) / 210 m (laser), outnumbered at 2, retreat +30% per extra shooter. Calibrated sim: 4.76 → 6.76 over 192 matches; FFA sim 11.10 → 11.80. Our aim is precise and the house aim is noisy, so long range favours us.
+- 2026-11-20: loadout values laser 3, gun 2, lightning 1.3, mortar 1 (was lightning 2.6, gun 1.6). Calibrated sim 6.76 → 7.63 over 192 matches; FFA 11.80 → 11.96.
 - 2026-11-20: the simulator drives bots in-process (`botController`), not over pipes. The protocol path is covered by `check.py` locally and in Docker; in-process runs are about 1.5 s per match.
 
 ## Measurements

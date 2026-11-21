@@ -4,7 +4,7 @@
  */
 export const P = {
   /** Value of each weapon kind in a loadout. Higher is kept; lower is swapped out. */
-  weaponPref: { laser: 3, lightning: 2.6, gun: 1.6, mortar: 1.2 } as Record<string, number>,
+  weaponPref: { laser: 3, gun: 2, lightning: 1.3, mortar: 1 } as Record<string, number>,
   /** Minimum loadout gain to walk to a pickup / swap a held weapon. */
   swapGain: 0.4,
   /** Upgrade ids in the order we prefer them; unknown ids rank last. */
