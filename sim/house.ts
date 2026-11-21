@@ -21,14 +21,16 @@ export type HouseTuning = {
 
 export const HOUSE: HouseTuning = {
   joinStart: 20,
-  joinPerKill: 2,
+  joinPerKill: 1,
   lateAll: 240,
   intelEvery: 8,
-  aimSigmaDeg: [2.6, 1.5, 0.9, 0.5],
-  lead: [0.3, 0.7, 0.9, 1],
+  aimSigmaDeg: [1.5, 0.9, 0.5, 0.3],
+  lead: [0.6, 0.9, 1, 1],
   strafe: [0, 0.4, 0.8, 1],
   fireRange: [120, 150, 180, 200],
 }
+// HOUSE_PARAMS (JSON) overrides any field above, for calibration sweeps
+if (typeof process !== "undefined" && process.env.HOUSE_PARAMS) Object.assign(HOUSE, JSON.parse(process.env.HOUSE_PARAMS))
 
 export const LOADOUTS: string[][][] = [
   [["gun"]],

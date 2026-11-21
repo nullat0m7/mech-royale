@@ -92,3 +92,4 @@ Practice score = the mean of 16 − place over 48 matches against the house squa
 
 | # | Date (ET) | Commit | Score | Notes |
 | --- | --- | --- | --- | --- |
+| 1 | 2026-11-20 | `65ce172` | 4.44 | First submission. Sim had predicted 2.92: the sim squad is too strong. |
