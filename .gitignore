@@ -1,0 +1,26 @@
+# OS and editors
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Python bytecode from the kit's check tool
+__pycache__/
+*.py[cod]
+
+# Node
+node_modules/
+*.tsbuildinfo
+
+# Local sim output, replays, logs (repo must stay <=20 MB at submitted commits)
+runs/
+replays/
+*.log
+
+# Secrets and env
+.env
+.env.*
+
+# Claude Code local state
+.claude/settings.local.json
+.cc-writes/

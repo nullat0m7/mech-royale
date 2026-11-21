@@ -1,0 +1,15 @@
+{
+  "name": "mech-royale",
+  "private": true,
+  "type": "module",
+  "description": "Bot for the mechfight/1 16-mech battle royale. Runs on Node 24 with no runtime dependencies.",
+  "scripts": {
+    "typecheck": "DENO_DIR=${TMPDIR:-/tmp}/deno deno check bot test sim tools",
+    "test": "node --test test/*.test.ts",
+    "check": "python3 mechfight-kit/check/check.py -- node bot/main.ts",
+    "docker:build": "docker build --platform linux/amd64 -t mech-royale .",
+    "check:docker": "python3 mechfight-kit/check/check.py --map-dir /arena -- docker run --rm -i --platform linux/amd64 --network none --cpus 1 --memory 512m --read-only --tmpfs /tmp:rw,size=64m --user 65534:65534 -v \"$PWD/mechfight-kit/arena:/arena:ro\" mech-royale",
+    "verify": "node --run typecheck && node --run test && node --run check && node --run docker:build && node --run check:docker",
+    "sim": "node tools/run.ts"
+  }
+}
