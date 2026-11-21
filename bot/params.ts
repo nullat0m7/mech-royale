@@ -15,7 +15,7 @@ export const P = {
   ],
   /** Retreat to cover below this HP fraction; fight again above reengage. */
   retreatHp: 0.4,
-  reengageHp: 0.65,
+  reengageHp: 0.85,
   /** Hide and regenerate below reengageHp whenever nothing is in view (not only after a retreat). */
   idleRegen: false,
   /** Count spots hidden from a threat only by trees as partly covered (this fraction of fully exposed). */
@@ -40,9 +40,9 @@ export const P = {
   farmUntil: 330,
   farmHp: 0.6,
   npcRange: 170,
-  crateRange: 90,
+  crateRange: 140,
   lootRange: 170,
-  cubeRange: 90,
+  cubeRange: 140,
   /** Engagement range keeping by main weapon (meters). */
   rangeGun: 75,
   rangeLaser: 120,

@@ -4,8 +4,11 @@ Every change to the bot, the simulator and the project setup, newest first, with
 
 ## 2026-11-20
 
-### Unreleased (pending submission 6)
-- `farmHp` back to 0.6. The bot is the 4.44 behaviour plus `reengageHp` 0.65 alone.
+### Unreleased (pending submission 7)
+- `reengageHp` back to 0.85 (the 4.44 value).
+- `crateRange` and `cubeRange` 90 → 140 m: shoot crates farther out and walk to the cube each one drops. Crates do not shoot back, and each gives a cube (+4% max HP and damage) plus a weapon half the time.
+
+### `926e5b7`: `farmHp` back to 0.6, `reengageHp` 0.65 alone. Practice **4.40** (submission 6)
 
 ### `f4f93f8`: farm only at 85% HP. Practice **4.31** (submission 5, together with `fe134fc`)
 - `farmHp` 0.6 → 0.85: shoot NPC drones and crates only at 85% HP or more. Per `protocol.md` §7, dealing damage pauses regen as much as taking it, and drones shoot back, so farming while hurt left the bot stuck at partial HP.

@@ -4,6 +4,7 @@
 
 ## Observations (continued)
 
+- 2026-11-20: Every change from the 4.44 behaviour has lost so far: long range 3.98, tree cover + idle regen 4.00, reengage 0.65 + farm at 85% 4.31, reengage 0.65 alone 4.40. The only gradient seen: farming less cost about 0.09.
 - 2026-11-20: `f4f93f8` stacked two changes (`reengageHp` 0.65, `farmHp` 0.85) and scored 4.31. A stacked score cannot say which change moved it, so submit one change at a time.
 - 2026-11-20: Trees block about half the sightlines buildings leave open, never shots; hunters track us 5 s after losing sight.
 - 2026-11-20: No public replays, match data or debug downloads exist (watch, status, leaderboard pages). The practice score is the only real feedback.
