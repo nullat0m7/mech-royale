@@ -5,9 +5,12 @@ Every change to the bot, the simulator and the project setup, newest first, with
 ## 2026-11-20
 
 ### Unreleased (pending submission 6)
+- `farmHp` back to 0.6. The bot is the 4.44 behaviour plus `reengageHp` 0.65 alone.
+
+### `f4f93f8`: farm only at 85% HP. Practice **4.31** (submission 5, together with `fe134fc`)
 - `farmHp` 0.6 → 0.85: shoot NPC drones and crates only at 85% HP or more. Per `protocol.md` §7, dealing damage pauses regen as much as taking it, and drones shoot back, so farming while hurt left the bot stuck at partial HP.
 
-### `fe134fc`: reengage at 65% HP (submission 5, score pending)
+### `fe134fc`: reengage at 65% HP (never scored alone; see `f4f93f8`)
 - `reengageHp` 0.85 → 0.65: after a retreat, stand still only until 65% HP, then roam or fight again (regen continues while roaming). `treeCover` and `idleRegen` off again: the bot is the 4.44 behaviour plus this one change.
 - Logged submission 4 (4.00) in `docs/bot.md`, `docs/handoff.md` and `CLAUDE.md`.
 

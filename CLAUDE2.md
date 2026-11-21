@@ -4,6 +4,7 @@
 
 ## Observations (continued)
 
+- 2026-11-20: `f4f93f8` stacked two changes (`reengageHp` 0.65, `farmHp` 0.85) and scored 4.31. A stacked score cannot say which change moved it, so submit one change at a time.
 - 2026-11-20: Trees block about half the sightlines buildings leave open, never shots; hunters track us 5 s after losing sight.
 - 2026-11-20: No public replays, match data or debug downloads exist (watch, status, leaderboard pages). The practice score is the only real feedback.
 - 2026-11-20: Leaderboard ~21:00 ET: 94 teams, top 5.23 (then 5.19, 5.19, 4.75, 4.73); we are about 9th at 4.44. The top 32 by practice score qualify for the final.

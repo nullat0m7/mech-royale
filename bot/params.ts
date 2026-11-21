@@ -38,7 +38,7 @@ export const P = {
   zoneSlack: 8,
   /** Farm NPC drones and crates until this match time, above this HP fraction. */
   farmUntil: 330,
-  farmHp: 0.85,
+  farmHp: 0.6,
   npcRange: 170,
   crateRange: 90,
   lootRange: 170,
