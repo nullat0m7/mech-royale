@@ -53,7 +53,7 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 
 ## Current focus (2026-11-20)
 
-**Status (2026-11-21):** Best 4.46 (`7a3a25a`); #11 4.31, #12 3.90; HEAD = 4.46 play + FFA mode (`docs/handoff.md`). Submit: push `main`; owner submits the repo URL (scorer builds HEAD); when asking, give the full 40-char commit hash (`git rev-parse HEAD`); log the score in `docs/bot.md`, `CHANGELOG.md`, `PATTERNS.md`. Keep a change only if its real score beats the best.
+**Status (2026-11-21):** Best 4.46 (`7a3a25a`); HEAD = that play + FFA mode (`docs/handoff.md`). Submit: push `main`; owner submits the repo URL (scorer builds HEAD); when asking, give the full 40-char commit hash (`git rev-parse HEAD`); log the score in `docs/bot.md`, `CHANGELOG.md`, `PATTERNS.md`. Keep a change only if its real score beats the best.
 
 **Observations** (add each new one, dated; at most 800 words here, overflow to `CLAUDE2.md`):
 - 2026-11-20: Practice scoring is deterministic (4.44 twice). Never submit a replicate.
