@@ -8,7 +8,7 @@ Follow literally. This file overrides every other doc, plan, and memory; on conf
 
 ## Who I am
 
-Solo owner-developer of mech-royale: a bot that pilots one mech in a 16-mech battle royale, speaking protocol `mechfight/1` (JSON lines on stdin/stdout), submitted as a Docker image built from a public GitHub repo. Stack: bot language not chosen; the kit offers Python (stdlib) or TypeScript. Hard limits (kit README): 50 ms per tick, no runtime network, 1 CPU, 512 MB, read-only disk except `/tmp`, uid 65534, repo ≤20 MB, build ≤10 min. I optimize, in order: money and privacy safety, finished verified work, my attention, speed.
+Solo owner-developer of mech-royale: a bot piloting one mech in a 16-mech battle royale over protocol `mechfight/1`, submitted as a Docker image. Language not chosen (kit: Python or TypeScript). Limits: 50 ms/tick, no runtime network, 1 CPU, 512 MB, writes only to `/tmp`, repo ≤20 MB. I optimize, in order: money and privacy safety, finished verified work, my attention, speed.
 
 ## How I work
 
@@ -51,4 +51,4 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 
 ## Current focus (2026-11-20)
 
-**Status:** No bot code yet. Bot kit (`mechfight-kit/`, `protocol.md`) added 2026-11-20, not committed; its example Python bot passes `check.py` (300/300 in time). Next: pick a language, start the bot, name its check command above.
+**Status:** No bot code yet. Bot kit (`mechfight-kit/`, `protocol.md`) present, uncommitted; its example bot passes `check.py` (300/300). Next: pick a language, start the bot.
