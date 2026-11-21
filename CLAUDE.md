@@ -53,7 +53,7 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 
 ## Current focus (2026-11-20)
 
-**Status (2026-11-20):** Best practice 4.44 (`65ce172`, `ecbee26`); pending #7: crates/cubes to 140 m. Submit: push `main`; owner submits the repo URL (scorer builds HEAD); when asking, give the full 40-char commit hash (`git rev-parse HEAD`); log the score in `docs/bot.md`, `CHANGELOG.md`, `PATTERNS.md`. Keep a change only if its real score beats the best.
+**Status (2026-11-20):** Best practice 4.44 (`65ce172`, `ecbee26`); pending #8: `dropMaxDist` 300. Submit: push `main`; owner submits the repo URL (scorer builds HEAD); when asking, give the full 40-char commit hash (`git rev-parse HEAD`); log the score in `docs/bot.md`, `CHANGELOG.md`, `PATTERNS.md`. Keep a change only if its real score beats the best.
 
 **Observations** (add each new one, dated; at most 800 words here, overflow to `CLAUDE2.md`):
 - 2026-11-20: Practice scoring is deterministic (same behaviour scored 4.44 twice). Every score change is real; never submit a replicate.

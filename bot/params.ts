@@ -40,9 +40,9 @@ export const P = {
   farmUntil: 330,
   farmHp: 0.6,
   npcRange: 170,
-  crateRange: 140,
+  crateRange: 90,
   lootRange: 170,
-  cubeRange: 140,
+  cubeRange: 90,
   /** Engagement range keeping by main weapon (meters). */
   rangeGun: 75,
   rangeLaser: 120,
@@ -50,7 +50,7 @@ export const P = {
   rangeMortar: 110,
   /** Supply drops: go when nothing hostile is in sight and our ETA is within this many seconds of landing. */
   dropSlack: 6,
-  dropMaxDist: 220,
+  dropMaxDist: 300,
   /** A* budget: at most one search per decision, only if less than this many ms were used, at most this many cells. */
   pathBudgetMs: 12,
   pathExpand: 25000,
