@@ -57,8 +57,8 @@ test("deaths we caused never switch to free-for-all; practice mode never does", 
   assert.equal(forced.ghost, false)
 })
 
-test("a mortar is never taken and is dropped when held (laser cook-off)", () => {
-  const brain = new Brain(hello, world, nav, loadParams(undefined))
+test("a weapon valued below zero is never taken and is dropped when held", () => {
+  const brain = new Brain(hello, world, nav, loadParams(undefined, { weaponPref: { mortar: -1 } }))
   const o = structuredClone(recorded[0])
   const gun = o.self.weapons[0]
   o.self.weapons = [gun, null]

@@ -28,12 +28,13 @@ Rules live in `CLAUDE.md` and override this file. Design, decisions and the subm
 | `7a3a25a` | **4.46** | submission 8: 4.44 behaviour plus `dropMaxDist` 300 m; new best |
 | `944ca5c` | 4.38 | submission 9: `dropSlack` 30 s; back to 6 |
 | `3a7229f` | pending | submission 10: `7a3a25a` plus `rangeGun` 100 m |
-| HEAD of `main` | pending | candidate 11: laser duck, no mortar, free-for-all mode |
+| `d2453c4` | 4.31 | submission 11: laser duck, no mortar, FFA mode; practice parts reverted |
+| HEAD of `main` | pending | candidate 12: kill securing, damage-first upgrades, `lootRange` 260 |
 
 ## 1. Next (2026-11-21)
 
 The win is decided in free-for-alls between the top 32 (track page; `CLAUDE.md` Observations); the practice score only has to stay in the top 32 with margin. Work in this order:
-1. Log #10 (`3a7229f`) and #11 when the owner pastes them. If #10 is 4.46 or below, the next candidate also sets `rangeGun` back to 75.
+1. Log #12 when the owner pastes it. Owner wants all-in bets: bundle one direction per submission, not one knob.
 2. Grow the free-for-all mode with the league (`node tools/run.ts --mode league --cand '{"mode":"ffa"}' --base '{"mode":"practice"}' --matches 160`): accept a change only when the paired difference is positive with the CI above 0. Ideas: exposure map precomputed offline for hiding spots, endgame positioning near `next_center`, quieter rotations.
 3. Practice candidates, one mechanism each, from `PATTERNS.md` and `docs/bot.md` Decisions: one-at-a-time geometry (move when 2+ hostiles have a line of fire), kill securing (stay to finish a target we out-damage), zone planner on walking distance. The sim cannot rank them (calibration 2026-11-21); decide by real scores.
 4. Before the cutoff (Sun 2026-11-22 11:00 ET): the chosen submission must carry the FFA mode and be in the top 32; if the board's "best" is an older build without it, the owner picks the newer one on the track page.

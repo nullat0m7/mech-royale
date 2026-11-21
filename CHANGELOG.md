@@ -4,7 +4,14 @@ Every change to the bot, the simulator and the project setup, newest first, with
 
 ## 2026-11-21
 
-### Candidate 11 (pending): laser duck, no mortar, free-for-all mode
+### Candidate 12 (pending): kill faster
+- Reverted from #11 (4.31): laser duck off, mortars valued again (1.2), `rangeGun` 75.
+- Kill securing: `finishHp` 350, `finishSelf` 300.
+- Upgrades: laser damage, gun damage, gun rate, lightning efficiency, laser charge, then plating, armor, nanites.
+- `lootRange` 170 → 260 m.
+- Exposure map (`tools/exposure.ts` → `bot/data/exposure.bin`, 48 KB, loaded with a map signature check); used by ghost mode only when `ghostExpW` > 0 (off).
+
+### `d2453c4`: laser duck, no mortar, free-for-all mode. Practice **4.31** (submission 11)
 - Laser duck: a visible mech charging a laser at us sends us behind the nearest cover within 14 m.
 - Mortars are never taken and are dropped when held: a held mortar makes laser hits cook off for +60%.
 - Free-for-all ("ghost") mode for the qualifying round and final, gated on 2 deaths we did not cause by 150 s. Practice behaviour is unchanged when it does not fire.

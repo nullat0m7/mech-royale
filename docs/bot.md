@@ -53,6 +53,8 @@ Each decision the brain picks one mode, in this order:
 4. `regen`: after a retreat (or, with `idleRegen`, whenever nothing is in view and HP is under 85%), stands still (silent) facing the last hit until `reengageHp` (85%) HP. Regen itself (45 HP/s after 5 s unharmed) also runs while roaming.
 5. Otherwise `roam`, choosing one of: walk onto visible cubes within 90 m; take a weapon that improves the loadout (laser 3, lightning 2.6, gun 1.6, mortar 1.2); go to a supply drop within 300 m if no hostile is in view and we can arrive within 6 s of landing; shoot NPC drones within 170 m and crates within 90 m (until 330 s, above 60% HP); rotate into the next circle; hold next to a wall inside it.
 
+Kill securing (2026-11-21): below the retreat line, keep fighting a mech with at most `finishHp` HP left in our line of fire while we have `finishSelf` HP.
+
 Free-for-all ("ghost", 2026-11-21): when at least 2 mechs we did not kill are dead by 150 s (house bots never fight each other, so practice cannot do this), and until 4 are alive, the next circle is 70 m or t = 330 s:
 - Attacked by a mech in the last 2 s: go to cover if it is within 25 m (shooting back), else fight.
 - Finish a visible enemy at or below 35% HP in range when we have 50% and no other mech is within 150 m.
@@ -97,6 +99,7 @@ Always on:
 - 2026-11-21: the final is decided in free-for-alls between qualifiers (track page), so the bot gets a free-for-all mode. It is gated so practice behaviour does not change: 0 activations in 192 sim practice matches; it activates at 22.7 s on the recorded real match.
 - 2026-11-21: sim calibration with house fire at full range: the `6df0e10` stack (real 3.98) still scores best in the sim (5.38 vs 3.63 for the 4.44 behaviour, 960 matches each), and also with near-perfect house aim (4.36 vs 3.18, 480 each). The sim cannot rank tactics; it stays a tool for bugs, timing and mechanisms.
 - 2026-11-21: candidate 11: laser duck plus never carrying a mortar. The real recording shows lasers doing 1260 of 1665 damage taken; the sim's house bots rarely laser (317 of 2600 per match), so the sim cannot measure it. Jinking (`strafeFlip` 1, 0.3-0.7 s) showed no sim change in damage taken and is not shipped.
+- 2026-11-21: #11 scored 4.31. The owner asked for all-in bets instead of one-knob tests, so candidate 12 bundles one direction, "kill faster": kill securing (`finishHp` 350: keep fighting below the retreat line while the target has at most 350 HP in our line of fire and we have 300), damage upgrades before plating, and weapons hunted out to 260 m (`lootRange`). Ghost mode keeps the v1 camp (exposure off, `ghostExpW` 0): the exposure camp scored −0.49 ± 0.78 against v1's +0.59 ± 0.77 in the league.
 - 2026-11-20: the simulator drives bots in-process (`botController`), not over pipes. The protocol path is covered by `check.py` locally and in Docker; in-process runs are about 1.5 s per match.
 
 ## Measurements
@@ -136,3 +139,5 @@ Practice score = the mean of 16 − place over 48 matches against the house squa
 | 7 | 2026-11-20 | `aeb2484` (bot; docs-only HEAD `5770340`) | 4.35 | `crateRange` and `cubeRange` 90 → 140 m. Worse than 4.44; back to 90. |
 | 8 | 2026-11-20 | `7a3a25a` | **4.46** | `dropMaxDist` 220 → 300 m. New best (+1 place-point over 48 matches); kept. |
 | 9 | 2026-11-20 | `944ca5c` | 4.38 | `dropSlack` 6 → 30 s on top of #8. Worse than 4.46; back to 6. |
+| 10 | 2026-11-20 | `3a7229f` | not reported | `rangeGun` 100. |
+| 11 | 2026-11-21 | `d2453c4` | 4.31 | `rangeGun` 100 + laser duck + mortar never held + FFA mode (inactive in practice). Worse than 4.46; duck, mortar rule and `rangeGun` 100 reverted. |

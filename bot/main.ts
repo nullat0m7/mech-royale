@@ -4,6 +4,7 @@ import { Brain, zoneAt } from "./brain/brain.ts"
 import { loadParams } from "./params.ts"
 import { World } from "./world/map.ts"
 import { Nav } from "./world/nav.ts"
+import { Exposure } from "./world/exposure.ts"
 
 /** Last-resort action when the brain throws: walk to the zone centre, keep aim, don't fire. */
 export function fallback(obs: Observation): Omit<Action, "tick"> {
@@ -22,8 +23,10 @@ export function makeBot(hello: Hello, overrides?: Record<string, unknown>) {
     const t0 = performance.now()
     const world = World.load(hello.map.dir)
     const nav = new Nav(world, hello.config.mech.step_up, hello.config.mech.max_slope_deg, hello.config.mech.height)
-    brain = new Brain(hello, world, nav, P)
-    log(`world ready in ${(performance.now() - t0).toFixed(0)} ms`)
+    // precomputed offline (tools/exposure.ts); null if missing or built for another map
+    const exposure = Exposure.load(new URL("./data/exposure.bin", import.meta.url).pathname, world)
+    brain = new Brain(hello, world, nav, P, exposure)
+    log(`world ready in ${(performance.now() - t0).toFixed(0)} ms${exposure ? "" : " (no exposure map)"}`)
   } catch (e) {
     log("world load failed, running fallback only:", e)
   }

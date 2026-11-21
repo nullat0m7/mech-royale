@@ -11,19 +11,19 @@ export const P = {
    * it if held. A held mortar makes every laser hit on us cook off for +60% (protocol.md section 7), and house bots
    * carry lasers (the real recording in mechfight-kit/check landed 4 of 4 full-charge lasers at 57-150 m).
    */
-  weaponPref: { laser: 3, lightning: 2.6, gun: 1.6, mortar: -1 } as Record<string, number>,
+  weaponPref: { laser: 3, lightning: 2.6, gun: 1.6, mortar: 1.2 } as Record<string, number>,
   /**
    * Laser duck: when a visible mech is charging a laser aimed at us, step to the nearest spot within `duckR` m that
    * it cannot see. A held full charge fires on its own after hold_s (protocol.md section 7), so it may go into a wall.
    */
-  laserDuck: true,
+  laserDuck: false,
   duckR: 14,
   /** Minimum loadout gain to walk to a pickup / swap a held weapon. */
   swapGain: 0.4,
   /** Upgrade ids in the order we prefer them; unknown ids rank last. */
   upgradeOrder: [
-    "plating", "armor", "nanites", "laser_damage", "lightning_efficiency", "gun_damage", "laser_charge",
-    "gun_rate", "lightning_range", "gyros", "lightning_chain", "gun_velocity", "gun_mag", "mortar_reload",
+    "laser_damage", "gun_damage", "gun_rate", "lightning_efficiency", "laser_charge", "plating", "armor", "nanites",
+    "lightning_range", "gyros", "lightning_chain", "gun_velocity", "gun_mag", "mortar_reload",
     "servos", "capacitor", "reactor", "jets", "sensors", "laser_pierce", "mortar_splash", "mortar_velocity",
   ],
   /**
@@ -49,6 +49,9 @@ export const P = {
   ghostCrateR: 60,
   ghostDropR: 120,
   ghostDropClear: 150,
+  /** Ghost: cost of exposure (meters per 100% exposure) in camp and cover choice; camp search radius in 2 m cells. */
+  ghostExpW: 0,
+  ghostCampCells: 25,
   /** Ghost ends (full combat) at this many alive, this next-circle radius, or this match time. */
   ghostEndAlive: 4,
   ghostEndRadius: 70,
@@ -59,6 +62,13 @@ export const P = {
     "gun_rate", "lightning_range", "gyros", "lightning_chain", "gun_velocity", "gun_mag", "servos", "capacitor",
     "reactor", "jets", "mortar_reload", "laser_pierce", "mortar_splash", "mortar_velocity",
   ],
+  /**
+   * Kill securing: keep fighting below the retreat threshold while the target is a mech with at most `finishHp` HP
+   * left in our line of fire and we still have `finishSelf` HP. A hunter we abandon regenerates (45 HP/s after 5 s,
+   * protocol.md section 7) and comes back; a kill is a point (PATTERNS.md pattern 2).
+   */
+  finishHp: 350,
+  finishSelf: 300,
   /** Retreat to cover below this HP fraction; fight again above reengage. */
   retreatHp: 0.4,
   reengageHp: 0.85,
@@ -87,7 +97,7 @@ export const P = {
   farmHp: 0.6,
   npcRange: 170,
   crateRange: 90,
-  lootRange: 170,
+  lootRange: 260,
   cubeRange: 90,
   /**
    * Strafing in a fight: every `strafeMin` + U(0, `strafeSpan`) s, reverse with probability `strafeFlip`. Bullets take
@@ -97,7 +107,7 @@ export const P = {
   strafeSpan: 1.2,
   strafeFlip: 0.5,
   /** Engagement range keeping by main weapon (meters). */
-  rangeGun: 100,
+  rangeGun: 75,
   rangeLaser: 120,
   rangeLightning: 28,
   rangeMortar: 110,

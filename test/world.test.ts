@@ -107,3 +107,22 @@ test("upgrade pick follows the priority list", () => {
   assert.equal(pickUpgrade(["plating", "armor"], ["sensors", "gyros", "plating"]), 2)
   assert.equal(pickUpgrade([], ["a", "b", "c"]), 0)
 })
+
+test("exposure map loads for this map, is refused for another, and an open field is more exposed than a courtyard", async () => {
+  const { Exposure } = await import("../bot/world/exposure.ts")
+  const path = new URL("../bot/data/exposure.bin", import.meta.url).pathname
+  const e = Exposure.load(path, world)
+  assert.ok(e, "exposure map loads")
+  const other = Object.create(world)
+  other.prisms = world.prisms.slice(1)
+  assert.equal(Exposure.load(path, other), null)
+  assert.equal(Exposure.load("/nonexistent/exposure.bin", world), null)
+  let lo = 1, hi = 0
+  for (let x = world.minX + 50; x < world.maxX - 50; x += 20)
+    for (let y = world.minY + 50; y < world.maxY - 50; y += 20) {
+      const v = e!.at(x, y)
+      lo = Math.min(lo, v)
+      hi = Math.max(hi, v)
+    }
+  assert.ok(lo < 0.1 && hi > 0.8, `range ${lo}..${hi}`)
+})

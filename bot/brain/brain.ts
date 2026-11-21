@@ -7,6 +7,7 @@ import { draw } from "../mechfight.ts"
 import { aimAt, aimError, ballisticPitch, ballisticTime, clamp, interceptTime, rng, wrap } from "../world/geom.ts"
 import type { World } from "../world/map.ts"
 import type { Nav } from "../world/nav.ts"
+import type { Exposure } from "../world/exposure.ts"
 import type { Params } from "../params.ts"
 
 type Track = {
@@ -103,11 +104,13 @@ export class Brain {
   world: World
   nav: Nav
   P: Params
+  exposure: Exposure | null
 
-  constructor(hello: Hello, world: World, nav: Nav, P: Params) {
+  constructor(hello: Hello, world: World, nav: Nav, P: Params, exposure: Exposure | null = null) {
     this.world = world
     this.nav = nav
     this.P = P
+    this.exposure = exposure
     this.cfg = hello.config
     this.me = hello.slot
     this.rand = rng(hello.seed)
@@ -264,8 +267,10 @@ export class Brain {
 
     // hostiles that can shoot us right now raise the bar for staying in a fight
     const exposed = hostiles.filter((h) => this.world.clear([h.pos[0], h.pos[1], h.pos[2] + 7], [x, y, me.pos[2] + 4.5])).length
+    const finishing = !!target && target.kind === "mech" && target.hp <= P.finishHp && me.hp >= P.finishSelf && this.canHit(obs, target)
     const canFight =
-      hpFrac >= P.retreatHp + P.retreatPerExtra * Math.max(0, exposed - 1) && (hostileCount < P.outnumbered || hpFrac >= P.outnumberedHp)
+      finishing ||
+      (hpFrac >= P.retreatHp + P.retreatPerExtra * Math.max(0, exposed - 1) && (hostileCount < P.outnumbered || hpFrac >= P.outnumberedHp))
     if (zoneUrgent && zoneTarget) {
       mode = "zone"
       goal = zoneTarget
@@ -280,7 +285,7 @@ export class Brain {
       quiet = g.quiet
       silent = g.quiet
       wantBoost = g.wantBoost
-    } else if (target && canFight && !(this.state === "regen" && hpFrac < P.reengageHp && !recentlyHit)) {
+    } else if (target && canFight && (finishing || !(this.state === "regen" && hpFrac < P.reengageHp && !recentlyHit))) {
       mode = "fight"
       fightTarget = target
     } else if ((target || recentlyHit) && !canFight) {
@@ -743,15 +748,18 @@ export class Brain {
     const i0 = nav.ci(k0), j0 = nav.cj(k0)
     let best: number[] = [x, y]
     let bd = Infinity
-    for (let dj = -12; dj <= 12; dj++)
-      for (let di = -12; di <= 12; di++) {
+    // ghost: search wider and prefer spots few places can see (exposure map), walls not required
+    const ex = this.ghost && this.P.ghostExpW > 0 ? this.exposure : null
+    const R = ex ? this.P.ghostCampCells : 12
+    for (let dj = -R; dj <= R; dj += ex ? 2 : 1)
+      for (let di = -R; di <= R; di += ex ? 2 : 1) {
         const i = i0 + di, j = j0 + dj
         if (i < 0 || j < 0 || i >= nav.nx || j >= nav.ny) continue
         const k = j * nav.nx + i
-        if (!nav.wall[k] || nav.roof[k] || nav.blocked[k]) continue
+        if ((!ex && !nav.wall[k]) || nav.roof[k] || nav.blocked[k] || (ex && nav.comp[k] !== nav.comp[k0])) continue
         const cx = nav.cx(i), cy = nav.cy(j)
         if (Math.hypot(cx - next.x, cy - next.y) > next.r * this.P.zoneFrac) continue
-        const d = Math.hypot(di, dj)
+        const d = Math.hypot(di, dj) + (ex ? (ex.at(cx, cy) * this.P.ghostExpW) / 2 : 0)
         if (d < bd) {
           bd = d
           best = [cx, cy]
@@ -796,7 +804,7 @@ export class Brain {
           const dOld = Math.hypot(th[0] - x, th[1] - y), dNew = Math.hypot(th[0] - px, th[1] - py)
           if (dNew < dOld) toward += (dOld - dNew) * 0.8
         }
-        const s = r + seen * 200 + toward
+        const s = r + seen * 200 + toward + (this.ghost && this.exposure ? this.exposure.at(px, py) * this.P.ghostExpW * 0.5 : 0)
         if (s < bestS) {
           bestS = s
           best = [px, py]
