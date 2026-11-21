@@ -4,6 +4,11 @@
 
 ## Observations (continued)
 
+- 2026-11-20: Practice scoring is deterministic (4.44 twice). Never submit a replicate.
+- 2026-11-20: The sim mis-ranks tactics (`docs/bot.md`); decide tactics by real scores.
+- 2026-11-21: Practice only gates entry: the top 32 play free-for-alls against each other for the win (track page). Ship FFA mode in the chosen build.
+- 2026-11-21: Owner paused the project at 4.46 (90th place; #1 6.31). Last submissions: #11 4.31, #12 3.90, survival probe 1.75.
+
 - 2026-11-20: Both ~0.45 losses had `idleRegen` on; long range alone is untested. See `PATTERNS.md`.
 - 2026-11-21: Track page: at the cutoff (Sun 11:00 ET) the chosen submission ("your best unless you pick another") locks with its practice score; the top 32 play 16 FFA matches on new seeds, the top 16 a 64-match FFA series; ties go to the earlier submission; finalists are rebuilt, so pin versions. Board chat quotes a Builders rule: no code shared between teams, top entries compared. Never read or copy other teams' repos.
 - 2026-11-21: Leaderboard 23:07 ET (11-20): 135 teams; #1 5.58, #10 4.88, #21 4.46 (our best), #32 4.21. The top-32 line moves up fast.

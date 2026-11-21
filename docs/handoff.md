@@ -34,10 +34,6 @@ Rules live in `CLAUDE.md` and override this file. Design, decisions and the subm
 | `8074641` | 1.75 | probe 13: survival (ghost) play from the first tick; reverted |
 | HEAD of `main` | not submitted | 4.46 practice play plus FFA mode; hunter built, off |
 
-## 1. Next (2026-11-21)
+## 1. Next
 
-The win is decided in free-for-alls between the top 32 (track page; `CLAUDE.md` Observations); the practice score only has to stay in the top 32 with margin. Work in this order:
-1. Log #12 when the owner pastes it. Owner wants all-in bets: bundle one direction per submission, not one knob.
-2. Grow the free-for-all mode with the league (`node tools/run.ts --mode league --cand '{"mode":"ffa"}' --base '{"mode":"practice"}' --matches 160`): accept a change only when the paired difference is positive with the CI above 0. Ideas: exposure map precomputed offline for hiding spots, endgame positioning near `next_center`, quieter rotations.
-3. Practice candidates, one mechanism each, from `PATTERNS.md` and `docs/bot.md` Decisions: one-at-a-time geometry (move when 2+ hostiles have a line of fire), kill securing (stay to finish a target we out-damage), zone planner on walking distance. The sim cannot rank them (calibration 2026-11-21); decide by real scores.
-4. Before the cutoff (Sun 2026-11-22 11:00 ET): the chosen submission must carry the FFA mode and be in the top 32; if the board's "best" is an older build without it, the owner picks the newer one on the track page.
+Paused by the owner on 2026-11-21 (see `CLAUDE.md`, PAUSED). Nothing is pending. If the owner lifts the pause: HEAD plays the 4.46 practice behaviour plus the free-for-all mode; the hunter behaviour is built behind `hunt` (off; sim −0.2 to −0.5).
