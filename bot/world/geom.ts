@@ -74,6 +74,38 @@ export function pointInRing(ring: ArrayLike<number>, x: number, y: number): bool
   return inside
 }
 
+/**
+ * Parameter interval [t0, t1] within [0, 1] where segment a→b is inside the vertical cylinder centred
+ * at (cx, cy) with radius r between heights z0 and z1, or null when it misses.
+ */
+export function segCylInterval(a: number[], b: number[], cx: number, cy: number, z0: number, z1: number, r: number): [number, number] | null {
+  const dx = b[0] - a[0], dy = b[1] - a[1]
+  const fx = a[0] - cx, fy = a[1] - cy
+  const A = dx * dx + dy * dy
+  let t0 = 0, t1 = 1
+  if (A < 1e-12) {
+    if (fx * fx + fy * fy > r * r) return null
+  } else {
+    const B = 2 * (fx * dx + fy * dy), C = fx * fx + fy * fy - r * r
+    const disc = B * B - 4 * A * C
+    if (disc < 0) return null
+    const sq = Math.sqrt(disc)
+    t0 = Math.max(t0, (-B - sq) / (2 * A))
+    t1 = Math.min(t1, (-B + sq) / (2 * A))
+    if (t0 > t1) return null
+  }
+  const dz = b[2] - a[2]
+  if (Math.abs(dz) < 1e-9) {
+    if (a[2] < z0 || a[2] > z1) return null
+  } else {
+    const ta = (z0 - a[2]) / dz, tb = (z1 - a[2]) / dz
+    t0 = Math.max(t0, Math.min(ta, tb))
+    t1 = Math.min(t1, Math.max(ta, tb))
+    if (t0 > t1) return null
+  }
+  return [t0, t1]
+}
+
 /** Seeded PRNG (mulberry32). */
 export function rng(seed: number): () => number {
   let a = seed >>> 0

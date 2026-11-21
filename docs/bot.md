@@ -10,7 +10,7 @@ The rules and limits are in `CLAUDE.md` and `protocol.md`. This file says how th
 | `bot/main.ts` | Entry. Builds the world model at `hello`, runs `Brain.act` per observation, falls back to "walk to zone, don't fire" if the brain throws. |
 | `bot/mechfight.ts` | The kit's TypeScript wrapper, copied verbatim from `mechfight-kit/ts/mechfight.ts`. |
 | `bot/params.ts` | Every tunable number. `MECH_PARAMS` (JSON) overrides them for simulator A/B runs; the image never sets it. |
-| `bot/world/map.ts` | Terrain (bilinear), prisms (spatial hash), `rayHit`/`clear` for shots and sight. Trees are ignored (they never stop shots). |
+| `bot/world/map.ts` | Terrain (bilinear), prisms (spatial hash), `rayHit`/`clear` for shots, `sightClear` adding tree trunks and crowns for sight (trees never stop shots). |
 | `bot/world/nav.ts` | 2 m walk grid: surface height, roof flag, wall flag; A* with step-up and slope rules. |
 | `bot/world/geom.ts` | Angles, gun intercept, mortar ballistic pitch, point-in-polygon, seeded RNG. |
 | `bot/brain/brain.ts` | Memory, behaviour choice, movement, dodging, aiming and firing. |
@@ -33,7 +33,7 @@ Run from the repo root. In Claude Code's sandbox, use `node --run`, never `npm` 
 
 ## Simulator (`sim/`)
 
-`sim/engine.ts` approximates the server from `protocol.md`: physics with wall sliding, all four weapons, NPC drones, crates, loot, cubes and offers, supply drops, the zone, vision and sound. It ignores trees, and collision uses the centre plus four rim points. `sim/house.ts` models the practice squad as the track page describes it:
+`sim/engine.ts` approximates the server from `protocol.md`: physics with wall sliding, all four weapons, NPC drones, crates, loot, cubes and offers, supply drops, the zone, vision and sound. Vision includes tree occlusion; shots ignore trees, as in the real game. Collision uses the centre plus four rim points. `sim/house.ts` models the practice squad as the track page describes it:
 - Shared vision; they never fight each other.
 - Joins: one at 20 s, 2 more per house bot killed, all at 240 s.
 - Position intel every 8 s.
@@ -46,10 +46,10 @@ It also has a simple free-for-all opponent and the kit's example bot. Every numb
 Each decision the brain picks one mode, in this order:
 
 1. `zone`: outside the circle, or the trip to 70% of the next radius would not finish before the shrink ends. Boosts and still shoots targets of opportunity.
-2. `fight`: a hostile mech is in view and HP is at least 40% (+30% per extra hostile with a line of fire on us; 75% when 2 or more hostiles are near). Keeps a preferred range by weapon (gun 170 m, laser 210 m, lightning 28 m; at least 60 m from a lightning carrier when we hold a gun or laser) and strafes, flipping direction at random every 0.6–1.8 s.
+2. `fight`: a hostile mech is in view and HP is at least 40% (+15% per extra hostile with a line of fire on us; 75% when 3 or more hostiles are near). Keeps a preferred range by weapon (gun 75 m, laser 120 m, lightning 28 m) and strafes, flipping direction at random every 0.6–1.8 s.
 3. `retreat`: hostiles or recent hits while too weak to fight. Walks to the nearest sampled point that no tracked hostile can see, facing the threat.
-4. `regen`: after a retreat, or whenever nothing is in view and HP is under 85%, stands still (silent) facing the last hit until 85% HP.
-5. Otherwise `roam`, choosing one of: walk onto visible cubes; take a weapon that improves the loadout (laser 3, gun 2, lightning 1.3, mortar 1: gun plus laser fits the long-range game); go to a supply drop if no hostile is in view and we can arrive within 6 s of landing; shoot NPC drones within 170 m and crates within 90 m (until 330 s, above 60% HP); rotate into the next circle; hold next to a wall inside it.
+4. `regen`: after a retreat (or, with `idleRegen`, whenever nothing is in view and HP is under 85%), stands still (silent) facing the last hit until 85% HP.
+5. Otherwise `roam`, choosing one of: walk onto visible cubes; take a weapon that improves the loadout (laser 3, lightning 2.6, gun 1.6, mortar 1.2); go to a supply drop if no hostile is in view and we can arrive within 6 s of landing; shoot NPC drones within 170 m and crates within 90 m (until 330 s, above 60% HP); rotate into the next circle; hold next to a wall inside it.
 
 Always on:
 - Dodge: sidestep visible bullets passing within 4.5 m in the next 0.8 s, leave predicted mortar impacts, and sidestep a charging laser aimed at us.
@@ -75,6 +75,8 @@ Always on:
 - 2026-11-20: sim squad calibrated to the first real score: one hunter joins per kill, aim σ 1.5/0.9/0.5/0.3°. Sim gives example 0.96 (real 1.15) and build `65ce172` 4.90 (real 4.44).
 - 2026-11-20: engagement range 170 m (gun) / 210 m (laser), outnumbered at 2, retreat +30% per extra shooter. Calibrated sim: 4.76 → 6.76 over 192 matches; FFA sim 11.10 → 11.80. Our aim is precise and the house aim is noisy, so long range favours us.
 - 2026-11-20: loadout values laser 3, gun 2, lightning 1.3, mortar 1 (was lightning 2.6, gun 1.6). Calibrated sim 6.76 → 7.63 over 192 matches; FFA 11.80 → 11.96.
+- 2026-11-20: submission 2 (`6df0e10`, long range + gun/laser) scored 3.98 against 4.44, although the sim predicted +2.9. The sim cannot rank these changes, even after adding tree occlusion (trees block about half of building-clear sightlines). Defaults go back to the 4.44 behaviour; `idleRegen` and `avoidLightning` stay off. From here, a behaviour change ships only if a real submission shows it. Submission 3 replays the 4.44 behaviour to measure run-to-run noise on the fixed seeds.
+- 2026-11-20: tree occlusion (`World.sightClear`/`treesBlock`). Trunks block sight; crowns block when the path through them is longer than ln(1/canopyBlockT)/canopyDensity = 3.96 m (our reading of `rules`, unverified). The sim's vision uses it; the bot does not yet.
 - 2026-11-20: the simulator drives bots in-process (`botController`), not over pipes. The protocol path is covered by `check.py` locally and in Docker; in-process runs are about 1.5 s per match.
 
 ## Measurements
@@ -96,3 +98,4 @@ Practice score = the mean of 16 − place over 48 matches against the house squa
 | # | Date (ET) | Commit | Score | Notes |
 | --- | --- | --- | --- | --- |
 | 1 | 2026-11-20 | `65ce172` | 4.44 | First submission. Sim had predicted 2.92: the sim squad is too strong. |
+| 2 | 2026-11-20 | `6df0e10` | 3.98 | Long range (gun 170 m, laser 210 m), gun+laser loadout. Sim predicted 7.63: its long-range model was wrong. |

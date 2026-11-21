@@ -4,7 +4,7 @@
  */
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { pointInRing } from "./geom.ts"
+import { pointInRing, segCylInterval } from "./geom.ts"
 
 export type Prism = {
   kind: string
@@ -39,6 +39,14 @@ export class World {
   cells: number[][]
   private stamp: Uint32Array
   private stampN = 1
+  // trees (vision only): flat arrays; crowns are vertical cylinders from crownBase to height
+  nTrees = 0
+  tree: Float64Array = new Float64Array(0) // per tree: x, y, z, height, crownR, crownBase, trunkR, crownX, crownY
+  treeCells: number[][] = []
+  private treeStamp: Uint32Array = new Uint32Array(0)
+  private treeStampN = 1
+  /** Crown path length (m) beyond which sight is blocked: ln(1 / canopyBlockT) / canopyDensity. */
+  canopyMaxLen = Infinity
 
   constructor(worldJson: any, terrain: Uint8Array) {
     const b = worldJson.bounds
@@ -76,6 +84,66 @@ export class World {
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) this.cells[j * this.hnx + i].push(idx)
     })
     this.stamp = new Uint32Array(this.prisms.length)
+    const tr = worldJson.trees
+    if (tr && Array.isArray(tr.data)) {
+      const f: string[] = tr.fields
+      const col = (n: string) => f.indexOf(n)
+      const nf = f.length
+      this.nTrees = Math.floor(tr.data.length / nf)
+      this.tree = new Float64Array(this.nTrees * 9)
+      const names = ["x", "y", "z", "height", "crownR", "crownBase", "trunkR", "crownX", "crownY"]
+      for (let i = 0; i < this.nTrees; i++)
+        names.forEach((n, k) => {
+          const c = col(n)
+          this.tree[i * 9 + k] = c >= 0 ? tr.data[i * nf + c] : k === 7 ? tr.data[i * nf + col("x")] : k === 8 ? tr.data[i * nf + col("y")] : 0
+        })
+      this.treeCells = Array.from({ length: this.hnx * this.hny }, () => [])
+      for (let i = 0; i < this.nTrees; i++) {
+        const T = this.tree, o = i * 9
+        const r = Math.max(T[o + 4], T[o + 6]) + Math.hypot(T[o + 7] - T[o], T[o + 8] - T[o + 1])
+        for (let j = this.hy(T[o + 1] - r); j <= this.hy(T[o + 1] + r); j++)
+          for (let k = this.hx(T[o] - r); k <= this.hx(T[o] + r); k++) this.treeCells[j * this.hnx + k].push(i)
+      }
+      this.treeStamp = new Uint32Array(this.nTrees)
+      const rules = worldJson.rules ?? {}
+      if (rules.canopyDensity > 0 && rules.canopyBlockT > 0) this.canopyMaxLen = Math.log(1 / rules.canopyBlockT) / rules.canopyDensity
+    }
+  }
+
+  /** Do trees block sight along a→b? Trunks block; crowns block when the path through them is long. */
+  treesBlock(a: number[], b: number[]): boolean {
+    if (!this.nTrees) return false
+    if (++this.treeStampN === 0xffffffff) {
+      this.treeStamp.fill(0)
+      this.treeStampN = 1
+    }
+    const n = this.treeStampN
+    const T = this.tree
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2])
+    let crown = 0
+    const samples = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (HASH / 2)))
+    for (let s = 0; s <= samples; s++) {
+      const t = s / samples
+      const cell = this.hy(a[1] + (b[1] - a[1]) * t) * this.hnx + this.hx(a[0] + (b[0] - a[0]) * t)
+      for (const i of this.treeCells[cell]) {
+        if (this.treeStamp[i] === n) continue
+        this.treeStamp[i] = n
+        const o = i * 9
+        const z = T[o + 2]
+        if (segCylInterval(a, b, T[o], T[o + 1], z, z + T[o + 3], T[o + 6])) return true
+        const iv = segCylInterval(a, b, T[o + 7], T[o + 8], z + T[o + 5], z + T[o + 3], T[o + 4])
+        if (iv) {
+          crown += (iv[1] - iv[0]) * len
+          if (crown > this.canopyMaxLen) return true
+        }
+      }
+    }
+    return false
+  }
+
+  /** Line of sight: what shots hit, plus trees. */
+  sightClear(a: number[], b: number[]): boolean {
+    return this.rayHit(a, b) > 1 && !this.treesBlock(a, b)
   }
 
   static load(dir: string): World {

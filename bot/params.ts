@@ -4,7 +4,7 @@
  */
 export const P = {
   /** Value of each weapon kind in a loadout. Higher is kept; lower is swapped out. */
-  weaponPref: { laser: 3, gun: 2, lightning: 1.3, mortar: 1 } as Record<string, number>,
+  weaponPref: { laser: 3, lightning: 2.6, gun: 1.6, mortar: 1.2 } as Record<string, number>,
   /** Minimum loadout gain to walk to a pickup / swap a held weapon. */
   swapGain: 0.4,
   /** Upgrade ids in the order we prefer them; unknown ids rank last. */
@@ -17,13 +17,13 @@ export const P = {
   retreatHp: 0.4,
   reengageHp: 0.85,
   /** Hide and regenerate below reengageHp whenever nothing is in view (not only after a retreat). */
-  idleRegen: true,
+  idleRegen: false,
   /** Keep at least 60 m from a target carrying lightning when we have a gun or laser. */
-  avoidLightning: true,
+  avoidLightning: false,
   /** Each extra hostile with a line of fire on us adds this to the retreat threshold. */
-  retreatPerExtra: 0.3,
+  retreatPerExtra: 0.15,
   /** With this many hostile mechs tracked, fight only above `outnumberedHp`. */
-  outnumbered: 2,
+  outnumbered: 3,
   outnumberedHp: 0.75,
   /** Target choice: weight of target HP (per point) and bonus (meters) for staying on the current target. */
   targetHpWeight: 0.15,
@@ -41,8 +41,8 @@ export const P = {
   lootRange: 170,
   cubeRange: 90,
   /** Engagement range keeping by main weapon (meters). */
-  rangeGun: 170,
-  rangeLaser: 210,
+  rangeGun: 75,
+  rangeLaser: 120,
   rangeLightning: 28,
   rangeMortar: 110,
   /** Supply drops: go when nothing hostile is in sight and our ETA is within this many seconds of landing. */

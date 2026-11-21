@@ -981,7 +981,7 @@ export class Sim {
       if (d > V.range + (m.stats.vision_bonus ?? 0)) return false
       if (Math.abs(wrap(Math.atan2(p[1] - eye[1], p[0] - eye[0]) - m.aim[0])) > (V.fov_deg * Math.PI) / 360) return false
     }
-    return this.world.clear(eye, p) || this.world.clear(eye, [p[0], p[1], p[2] + top / 2])
+    return this.world.sightClear(eye, p) || this.world.sightClear(eye, [p[0], p[1], p[2] + top / 2])
   }
 
   observe(m: Mech): Observation {
