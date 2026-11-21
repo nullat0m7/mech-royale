@@ -29,6 +29,7 @@ export function makeBot(hello: Hello) {
   let errors = 0
   return {
     name: "mech-royale",
+    brain,
     act(obs: Observation) {
       if (!brain) return fallback(obs)
       try {

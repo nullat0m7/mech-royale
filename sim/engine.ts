@@ -52,6 +52,7 @@ export type Mech = {
   deathCause: string
   missed: number
   aux: any // controller scratch
+  stat: Record<string, number> // counters for diagnostics
 }
 type Proj = { id: number; kind: "gun" | "mortar" | "npc"; owner: number; pos: number[]; vel: number[]; travel: number; range: number; dmg: number; ttl: number }
 type Npc = { id: number; pos: number[]; home: number[]; hp: number; target: number; cooldown: number; wander: number[]; alive: boolean }
@@ -141,7 +142,7 @@ export class Sim {
       id, alive: true, pos: [0, 0, 0], vel: [0, 0, 0], aim: [0, 0], cmd: {}, hp: 0, energy: 0, grounded: true, cubes: 0,
       upg: new Map(), weapons: [null, null], lastDmgT: -99, lastSpendT: -99, deathT: -1, place: 0, kills: 0, shortUntil: -1,
       offerQ: 0, offer: null, offerSeq: 0, events: [], memory: new Map(), ctl, tier, joined: false, stats: {}, wstats: {},
-      deathCause: "", missed: 0, aux: {},
+      deathCause: "", missed: 0, aux: {}, stat: {},
     }
     this.recompute(m)
     m.hp = m.stats.hp
@@ -307,6 +308,9 @@ export class Sim {
       }
       m.hp -= amt
       m.lastDmgT = this.t
+      const key = weapon === "zone" ? "takenZone" : weapon === "npc" ? "takenNpc" : "takenMech"
+      m.stat[key] = (m.stat[key] ?? 0) + amt
+      if (att && att !== m) att.stat.dealtMech = (att.stat.dealtMech ?? 0) + amt
       const bearing = from ? Math.atan2(from[1] - m.pos[1], from[0] - m.pos[0]) : null
       m.events.push({ type: "damaged", amount: Math.round(amt), weapon, bearing, by: weapon === "zone" ? null : by, ...(rear ? { rear: true } : {}) })
       if (att && att !== m) {
@@ -646,6 +650,7 @@ export class Sim {
           this.projs.push({ id: this.nextId++, kind: "gun", owner: m.id, pos: this.muzzle(m), vel: dir.map((d) => d * ws.speed), travel: 0, range: ws.range, dmg: ws.damage * this.dmgMul(m), ttl: 5 })
           w.ammo--
           w.cooldown = ws.cooldown
+          m.stat.gunShots = (m.stat.gunShots ?? 0) + 1
           this.sounds.push({ kind: "gun", pos: [...m.pos], t: this.t, by: m.id })
           if (w.ammo <= 0) {
             w.reload = ws.reload
@@ -783,7 +788,10 @@ export class Sim {
       if (hit.kind) {
         const at = lerp(a, b, hit.t)
         if (p.kind === "mortar") this.explode(p, at, hit.kind === "mech" || hit.kind === "npc" || hit.kind === "crate" ? hit : null)
-        else if (hit.kind !== "world") this.damage(hit.kind, hit.id, p.dmg, p.owner, p.kind === "npc" ? "npc" : "gun", a)
+        else if (hit.kind !== "world") {
+          if (p.owner < 16 && hit.kind === "mech") this.mechs[p.owner].stat.gunHits = (this.mechs[p.owner].stat.gunHits ?? 0) + 1
+          this.damage(hit.kind, hit.id, p.dmg, p.owner, p.kind === "npc" ? "npc" : "gun", a)
+        }
         continue
       }
       p.travel += Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2])

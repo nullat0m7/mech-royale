@@ -275,19 +275,20 @@ export function ffaController(): Controller {
 
 /** Wrap a protocol bot (hello → act(obs)) as an in-process controller. */
 export function botController(name: string, factory: (h: Hello) => { act(o: Observation): any }, mapDir: string): Controller {
-  let bot: { act(o: Observation): any } | null = null
-  return {
+  const ctl: Controller & { bot: { act(o: Observation): any } | null } = {
     name,
     wantsObs: true,
+    bot: null,
     act(sim, m, obs) {
-      if (!bot) {
+      if (!ctl.bot) {
         const h = sim.hello(m)
         h.map.dir = mapDir
-        bot = factory(h)
+        ctl.bot = factory(h)
       }
-      return bot.act(obs!)
+      return ctl.bot.act(obs!)
     },
   }
+  return ctl
 }
 
 /** The kit's example bot (baseline 1.15 on the real practice board), for calibration. */

@@ -16,9 +16,16 @@ export const P = {
   /** Retreat to cover below this HP fraction; fight again above reengage. */
   retreatHp: 0.4,
   reengageHp: 0.85,
+  /** Each extra hostile with a line of fire on us adds this to the retreat threshold. */
+  retreatPerExtra: 0.15,
   /** With this many hostile mechs tracked, fight only above `outnumberedHp`. */
   outnumbered: 3,
   outnumberedHp: 0.75,
+  /** Target choice: weight of target HP (per point) and bonus (meters) for staying on the current target. */
+  targetHpWeight: 0.15,
+  targetStick: 60,
+  /** Walk onto cubes this close even mid-fight. */
+  fightCubeRange: 30,
   /** Zone: target a point within this fraction of the next radius; travel safety factor and slack. */
   zoneFrac: 0.7,
   zoneSlack: 8,
@@ -37,6 +44,9 @@ export const P = {
   /** Supply drops: go when nothing hostile is in sight and our ETA is within this many seconds of landing. */
   dropSlack: 6,
   dropMaxDist: 220,
+  /** A* budget: at most one search per decision, only if less than this many ms were used, at most this many cells. */
+  pathBudgetMs: 12,
+  pathExpand: 25000,
   /** Boost when the goal is farther than this and energy is above `boostOn` (stop below `boostOff`). */
   boostDist: 50,
   boostOn: 55,

@@ -84,11 +84,16 @@ export class Brain {
   boosting = false
   // cover
   cover: number[] | null = null
+  peek: number[] | null = null
+  peekT = -99
+  pathsThisTick = 0
+  tickStart = 0
   coverT = -99
   camp: number[] | null = null
   campT = -99
   // laser
   laserHeld = 0
+  curTarget = -1
 
   world: World
   nav: Nav
@@ -186,6 +191,8 @@ export class Brain {
   // ------------------------------------------------------------------ main
   act(obs: Observation): Action {
     const act: Action = { tick: obs.tick }
+    this.pathsThisTick = 0
+    this.tickStart = performance.now()
     const me = obs.self
     const t = obs.t
     this.remember(obs)
@@ -204,12 +211,14 @@ export class Brain {
       const tg = this.targetOf(h)
       const d = Math.hypot(h.pos[0] - x, h.pos[1] - y)
       const los = this.canHit(obs, tg)
-      const score = d * 0.6 + h.hp * 0.06 - (los ? 120 : 0) - (h.id === this.lastHitBy && t - this.lastHitT < 3 ? 40 : 0)
+      const score =
+        d * 0.6 + h.hp * this.P.targetHpWeight - (los ? 120 : 0) - (h.id === this.lastHitBy && t - this.lastHitT < 3 ? 40 : 0) - (h.id === this.curTarget && los ? this.P.targetStick : 0)
       if (score < bestScore) {
         bestScore = score
         target = tg
       }
     }
+    this.curTarget = target ? target.id : -1
     const hostileCount = hostiles.filter((h) => Math.hypot(h.pos[0] - x, h.pos[1] - y) < 220).length
     const recentlyHit = t - this.lastHitT < 4
 
@@ -233,7 +242,10 @@ export class Brain {
     let wantBoost = false
     let mode = "roam"
 
-    const canFight = hpFrac >= P.retreatHp && (hostileCount < P.outnumbered || hpFrac >= P.outnumberedHp)
+    // hostiles that can shoot us right now raise the bar for staying in a fight
+    const exposed = hostiles.filter((h) => this.world.clear([h.pos[0], h.pos[1], h.pos[2] + 7], [x, y, me.pos[2] + 4.5])).length
+    const canFight =
+      hpFrac >= P.retreatHp + P.retreatPerExtra * Math.max(0, exposed - 1) && (hostileCount < P.outnumbered || hpFrac >= P.outnumberedHp)
     if (zoneUrgent && zoneTarget) {
       mode = "zone"
       goal = zoneTarget
@@ -294,6 +306,12 @@ export class Brain {
     let move: number[] = [0, 0]
     if (fightTarget && !goal) {
       move = this.fightMove(obs, fightTarget)
+      // grab cubes lying close by while fighting (kill drops)
+      const cube = this.nearestCube(obs)
+      if (cube && Math.hypot(cube[0] - x, cube[1] - y) < P.fightCubeRange && hpFrac > P.retreatHp) {
+        goal = cube
+        move = this.follow(obs, cube)
+      }
     } else if (goal) {
       const d = Math.hypot(goal[0] - x, goal[1] - y)
       move = d < 1.5 ? [0, 0] : this.follow(obs, goal)
@@ -508,6 +526,8 @@ export class Brain {
     const [x, y] = obs.self.pos
     const threats: number[][] = []
     for (const tr of this.tracks.values()) if (tr.kind === "mech" && t - tr.seen < 5) threats.push([tr.pos[0], tr.pos[1], tr.pos[2] + 8])
+    threats.sort((a, b) => Math.hypot(a[0] - x, a[1] - y) - Math.hypot(b[0] - x, b[1] - y))
+    threats.length = Math.min(threats.length, 4)
     if (!threats.length && t - this.lastHitT < 5) threats.push([x + Math.cos(this.lastHitBearing) * 80, y + Math.sin(this.lastHitBearing) * 80, obs.self.pos[2] + 8])
     let best: number[] = [x - Math.cos(this.lastHitBearing) * 30, y - Math.sin(this.lastHitBearing) * 30]
     let bestS = Infinity
@@ -521,7 +541,10 @@ export class Brain {
         if (Math.hypot(px - zNow.x, py - zNow.y) > zNow.r - 5 && Math.hypot(px - next.x, py - next.y) > safeR) continue
         const pz = this.nav.h[k] + 4.5
         let seen = 0
-        for (const th of threats) if (this.world.clear(th, [px, py, pz])) seen++
+        for (const th of threats) {
+          if (r + seen * 200 >= bestS) break
+          if (this.world.clear(th, [px, py, pz])) seen++
+        }
         // moving toward a threat is worse than away
         let toward = 0
         for (const th of threats) {
@@ -535,6 +558,20 @@ export class Brain {
         }
       }
     }
+    if (bestS >= 200 && threats.length) {
+      // nowhere hidden nearby: run directly away from the threats' centre, toward the zone
+      let ax = 0, ay = 0
+      for (const th of threats) {
+        const d = Math.hypot(x - th[0], y - th[1]) || 1
+        ax += (x - th[0]) / d
+        ay += (y - th[1]) / d
+      }
+      const zx = next.x - x, zy = next.y - y, zd = Math.hypot(zx, zy) || 1
+      ax += (zx / zd) * 0.5
+      ay += (zy / zd) * 0.5
+      const al = Math.hypot(ax, ay) || 1
+      best = [x + (ax / al) * 40, y + (ay / al) * 40]
+    }
     this.cover = best
     this.coverT = t
     return best
@@ -546,8 +583,11 @@ export class Brain {
     const t = obs.t
     const nav = this.nav
     const moved = Math.hypot(goal[0] - this.pathGoal[0], goal[1] - this.pathGoal[1])
-    if (!this.path || moved > 6 || t - this.pathT > 3) {
-      this.path = nav.path(x, y, goal[0], goal[1])
+    const budgetOk = this.pathsThisTick === 0 && performance.now() - this.tickStart < this.P.pathBudgetMs
+    if ((!this.path || moved > 6 || t - this.pathT > 3) && !budgetOk && (!this.path || moved > 30)) return this.dirTo(x, y, goal[0], goal[1])
+    if ((!this.path || moved > 6 || t - this.pathT > 3) && budgetOk) {
+      this.pathsThisTick++
+      this.path = nav.path(x, y, goal[0], goal[1], this.P.pathExpand)
       this.pathIdx = 0
       this.pathGoal = goal
       this.pathT = t
@@ -585,6 +625,51 @@ export class Brain {
     return d < 1e-6 ? [0, 0] : [(tx - x) / d, (ty - y) / d]
   }
 
+  /**
+   * A nearby point with line of fire to `tg` that the fewest other hostiles can see, near our
+   * preferred range. Re-chosen every 0.5 s. Null when standing here is as good as any.
+   */
+  private peekSpot(obs: Observation, tg: Target, pref: number): number[] | null {
+    const t = obs.t
+    if (t - this.peekT < 0.5) return this.peek
+    this.peekT = t
+    const [x, y] = obs.self.pos
+    const others: number[][] = []
+    for (const tr of this.tracks.values()) if (tr.kind === "mech" && tr.id !== tg.id && t - tr.seen < 5) others.push([tr.pos[0], tr.pos[1], tr.pos[2] + 7])
+    others.sort((a, b) => Math.hypot(a[0] - x, a[1] - y) - Math.hypot(b[0] - x, b[1] - y))
+    others.length = Math.min(others.length, 4)
+    const c = this.center(tg)
+    const score = (px: number, py: number, pz: number): number => {
+      if (!this.world.clear([px, py, pz + 7], c)) return Infinity
+      let s = 0
+      for (const o of others) if (this.world.clear(o, [px, py, pz + 4.5])) s += 100
+      const d = Math.hypot(c[0] - px, c[1] - py)
+      return s + Math.abs(d - pref) * 0.3 + Math.hypot(px - x, py - y) * 0.5
+    }
+    const here = score(x, y, obs.self.pos[2])
+    if (!others.length && here < Infinity) {
+      this.peek = null
+      return null
+    }
+    let best: number[] | null = null
+    let bestS = here - 20
+    for (const r of [6, 12, 20, 30]) {
+      for (let a = 0; a < 12; a++) {
+        const ang = (a / 12) * Math.PI * 2 + r
+        const px = x + Math.cos(ang) * r, py = y + Math.sin(ang) * r
+        const k = this.nav.cell(px, py)
+        if (this.nav.roof[k] || this.nav.blocked[k]) continue
+        const s = score(px, py, this.nav.h[k])
+        if (s < bestS) {
+          bestS = s
+          best = [px, py]
+        }
+      }
+    }
+    this.peek = best
+    return best
+  }
+
   /** Keep the preferred range for our weapons and strafe across the line of fire. */
   private fightMove(obs: Observation, tg: Target): number[] {
     const P = this.P
@@ -599,6 +684,11 @@ export class Brain {
     if (kinds.includes("lightning") && (tg.kind !== "mech" || d < 70 || !kinds.includes("laser"))) pref = P.rangeLightning
     if (tg.kind === "npc") pref = Math.max(pref, 50)
     if (tg.kind === "crate") pref = Math.min(Math.max(pref, 20), 40)
+    // fight from a spot where the target can be shot but other hostiles can't see us
+    if (tg.kind === "mech") {
+      const spot = this.peekSpot(obs, tg, pref)
+      if (spot && Math.hypot(spot[0] - x, spot[1] - y) > 2) return this.follow(obs, spot)
+    }
     // can't shoot it from here: walk to it
     if (!this.canHit(obs, tg)) return this.follow(obs, tg.pos)
     if (obs.t > this.strafeUntil) {

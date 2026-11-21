@@ -20,7 +20,7 @@ const ROOT = new URL("..", import.meta.url).pathname
 const ARENA = ROOT + "mechfight-kit/arena"
 
 type Opts = { matches: number; mode: string; bot: string; workers: number; seed: number; replay: string; verbose: boolean }
-type Result = { seed: number; place: number; points: number; cause: string; deathT: number; kills: number; cubes: number; hpEnd: number; times: number[]; errors: string[]; houseDead: number }
+type Result = { seed: number; place: number; points: number; cause: string; deathT: number; kills: number; cubes: number; hpEnd: number; times: number[]; errors: string[]; houseDead: number; trace?: string[]; stat?: Record<string, number> }
 
 function parse(argv: string[]): Opts {
   const o: Opts = { matches: 48, mode: "practice", bot: "ours", workers: Math.max(1, availableParallelism() - 1), seed: 1, replay: "", verbose: false }
@@ -65,6 +65,21 @@ export function playMatch(world: World, nav: Nav, cfg: any, seed: number, mode: 
         frames.push(JSON.stringify({ t: +sim.t.toFixed(2), z: sim.circle().map((v) => +v.toFixed(1)), m: sim.mechs.map((m) => [m.id, +m.pos[0].toFixed(1), +m.pos[1].toFixed(1), +m.pos[2].toFixed(1), Math.round(m.hp), +m.aim[0].toFixed(2), m.alive ? 1 : 0, m.joined ? 1 : 0]), p: sim.projs.map((p) => [+p.pos[0].toFixed(1), +p.pos[1].toFixed(1)]) }))
     }
   }
+  // trace: every decision, the brain's mode, our hp and how many hostiles we see
+  const trace: string[] = []
+  const ctl = sim.mechs[slot].ctl
+  const origAct = ctl.act
+  ctl.act = (s, m, obs) => {
+    const t0 = performance.now()
+    const a = origAct(s, m, obs)
+    const dtMs = performance.now() - t0
+    if (dtMs > 15 && s.tick > 0) s.log.push(`slow act ${dtMs.toFixed(0)} ms at t=${s.t.toFixed(1)} state ${(ctl as any).bot?.brain?.state}`)
+    const b = (ctl as any).bot?.brain
+    const tg = b?.curTarget >= 0 ? s.mechs[b.curTarget] : null
+    trace.push(`${s.t.toFixed(1)} ${b?.state ?? "?"} hp${Math.round(m.hp)} vis${obs!.mechs.filter((q) => q.kind === "mech").length} joined${s.mechs.filter((q) => q.joined && q.alive).length}${tg ? ` tgt${tg.id}:${Math.round(tg.hp)}@${Math.round(Math.hypot(tg.pos[0] - m.pos[0], tg.pos[1] - m.pos[1]))}m` : ""} fire${JSON.stringify(a.fire ?? [])} w${m.weapons.map((w) => w?.kind[0] ?? "-").join("")}`)
+    if (trace.length > (process.env.TRACE_ALL ? 1e9 : 40)) trace.shift()
+    return a
+  }
   sim.run()
   const me = sim.mechs[slot]
   if (replay) {
@@ -75,6 +90,8 @@ export function playMatch(world: World, nav: Nav, cfg: any, seed: number, mode: 
     seed, place: me.place, points: 16 - me.place, cause: me.alive ? "alive" : me.deathCause, deathT: me.alive ? sim.t : me.deathT,
     kills: me.kills, cubes: me.cubes, hpEnd: Math.round(me.hp), times: sim.timing, errors: sim.log.slice(0, 3),
     houseDead: sim.mechs.filter((m) => m !== me && !m.alive).length,
+    stat: me.stat,
+    trace: trace.filter((_, i) => i % (process.env.TRACE_ALL ? 10 : 4) === 3 || i >= trace.length - 6),
   }
 }
 
@@ -92,6 +109,8 @@ function summarize(rs: Result[], label: string) {
   console.log(`  death causes: ${Object.entries(causes).map(([k, v]) => `${k} ${v}`).join(", ")}`)
   console.log(`  mean survival ${avg((r) => r.deathT)} s, kills ${avg((r) => r.kills)}, cubes ${avg((r) => r.cubes)}`)
   console.log(`  act() ms: p50 ${q(0.5)} p99 ${q(0.99)} max ${q(1)}`)
+  const keys = [...new Set(rs.flatMap((r) => Object.keys(r.stat ?? {})))].sort()
+  console.log(`  per match: ${keys.map((k) => `${k} ${(rs.reduce((a, r) => a + (r.stat?.[k] ?? 0), 0) / rs.length).toFixed(0)}`).join(", ")}`)
   const errs = rs.flatMap((r) => r.errors)
   if (errs.length) console.log(`  errors (${errs.length}): ${errs.slice(0, 3).join(" | ")}`)
 }
@@ -105,7 +124,7 @@ if (isMainThread) {
     const world = World.load(ARENA), nav = new Nav(world), cfg = config()
     for (const s of seeds) {
       const r = playMatch(world, nav, cfg, s, o.mode, o.bot, o.replay)
-      if (o.verbose) console.log(`seed ${s}: place ${r.place} ${r.cause} at ${r.deathT.toFixed(0)} s, kills ${r.kills}`)
+      if (o.verbose) console.log(`seed ${s}: place ${r.place} ${r.cause} at ${r.deathT.toFixed(0)} s, kills ${r.kills}\n    ${r.trace!.join("\n    ")}`)
       results.push(r)
     }
   } else {
