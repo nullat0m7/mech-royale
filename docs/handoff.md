@@ -8,7 +8,7 @@ Rules live in `CLAUDE.md` and override this file. Design, decisions and the subm
 - **Bot**, 2026-11-20, `bot/main.ts` → `bot/brain/brain.ts` (`Brain.act`):
   - World: `bot/world/map.ts` (`World.rayHit`, `clear`, `sightClear`, `treesBlock`) and `bot/world/nav.ts` (`Nav.path`, `reachable`, `snap`, regions).
   - Every tunable number is in `bot/params.ts` (`P`).
-  - Verified at `029df2d`: type check 0 errors, `node --run test` 10/10 (includes a 10 000-observation fuzz test), Docker sandbox check PASS 300/300 with p99 4.2 ms.
+  - Verified at submission 5 (`reengageHp` 0.65): type check 0 errors, `node --run test` 10/10 (includes a 10 000-observation fuzz test), local check PASS 300/300 (p99 0.7 ms), Docker sandbox check PASS 300/300 (p99 4.3 ms, max 9.7 ms).
 - **Simulator**, 2026-11-20:
   - `sim/engine.ts` (`Sim`), `sim/house.ts` (`houseController`, `ffaController`, `exampleFactory`, `HOUSE` with a `HOUSE_PARAMS` env override), `tools/run.ts` (batch runner), `tools/viewer.html` (replay viewer).
   - About 1.5 s per match.
@@ -20,12 +20,13 @@ Rules live in `CLAUDE.md` and override this file. Design, decisions and the subm
   | `65ce172` | 4.44 | |
   | `6df0e10` | 3.98 | long range, reverted |
   | `ecbee26` | 4.44 | |
-  | `029df2d` / `59199ab` | pending | submission 4: `treeCover` and `idleRegen` on; only docs changed after `029df2d` |
+  | `096c710` (bot = `029df2d`) | 4.00 | submission 4: `treeCover` and `idleRegen` on; turned off again |
+| HEAD of `main` | pending | submission 5: 4.44 behaviour plus `reengageHp` 0.65 |
 
 ## 1. Next
 
-The owner will paste the practice score for `59199abc6784ca61a2467b019fae467e666f65e1`. Then:
-- If it is above 4.44, keep the change.
-- If it is 4.44 or below, set `treeCover: false` and `idleRegen: false` in `bot/params.ts` (back to the 4.44 behaviour) and try the next candidate.
+The owner will paste the practice score for submission 5 (HEAD of `main`, `reengageHp` 0.65). Then:
+- If it is above 4.44, keep it; the next candidate builds on it.
+- If it is 4.44 or below, set `reengageHp` back to 0.85 and try the next candidate.
 
-Each submission must carry one new candidate improvement.
+Each submission must carry one new candidate improvement. Untried candidates, reasoned in `docs/bot.md` Decisions: `farmUntil` later (more cubes), `upgradeOrder` with weapon damage earlier, shorter gun range. Rejected with reasons there: armor before plating, longer gun range, skipping drops.

@@ -15,11 +15,11 @@ export const P = {
   ],
   /** Retreat to cover below this HP fraction; fight again above reengage. */
   retreatHp: 0.4,
-  reengageHp: 0.85,
+  reengageHp: 0.65,
   /** Hide and regenerate below reengageHp whenever nothing is in view (not only after a retreat). */
-  idleRegen: true,
+  idleRegen: false,
   /** Count spots hidden from a threat only by trees as partly covered (this fraction of fully exposed). */
-  treeCover: true,
+  treeCover: false,
   treeCoverCost: 0.4,
   /** Keep at least 60 m from a target carrying lightning when we have a gun or laser. */
   avoidLightning: false,

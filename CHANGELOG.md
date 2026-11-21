@@ -4,7 +4,11 @@ Every change to the bot, the simulator and the project setup, newest first, with
 
 ## 2026-11-20
 
-### Unreleased (pending submission 4)
+### Unreleased (pending submission 5)
+- `reengageHp` 0.85 → 0.65: after a retreat, stand still only until 65% HP, then roam or fight again (regen continues while roaming). `treeCover` and `idleRegen` off again: the bot is the 4.44 behaviour plus this one change.
+- Logged submission 4 (4.00) in `docs/bot.md`, `docs/handoff.md` and `CLAUDE.md`.
+
+### `029df2d` (submitted as `096c710`): tree cover and idle regen. Practice **4.00** (submission 4)
 - Retreat and fight-position searches now count trees. A spot hidden from a hunter only by trees costs 40% of an exposed spot: trees block sight, not shots, and a hunter keeps tracking us for 5 s after losing sight (`treeCover`, `treeCoverCost`).
 - `idleRegen` on: whenever nothing is in view and HP is under 85%, stand still (silent) and regenerate before roaming.
 - Added this changelog. `CLAUDE.md` records that practice scoring is deterministic, the submit-and-log flow, and the rule that a tactic is kept only when its real score beats the best.

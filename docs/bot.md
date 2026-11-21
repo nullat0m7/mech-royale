@@ -48,7 +48,7 @@ Each decision the brain picks one mode, in this order:
 1. `zone`: outside the circle, or the trip to 70% of the next radius would not finish before the shrink ends. Boosts and still shoots targets of opportunity.
 2. `fight`: a hostile mech is in view and HP is at least 40% (+15% per extra hostile with a line of fire on us; 75% when 3 or more hostiles are near). Keeps a preferred range by weapon (gun 75 m, laser 120 m, lightning 28 m) and strafes, flipping direction at random every 0.6–1.8 s.
 3. `retreat`: hostiles or recent hits while too weak to fight. Walks to the nearest sampled point that no tracked hostile can see, facing the threat.
-4. `regen`: after a retreat (or, with `idleRegen`, whenever nothing is in view and HP is under 85%), stands still (silent) facing the last hit until 85% HP.
+4. `regen`: after a retreat (or, with `idleRegen`, whenever nothing is in view and HP is under 85%), stands still (silent) facing the last hit until `reengageHp` (65%) HP. Regen itself (45 HP/s after 5 s unharmed) also runs while roaming.
 5. Otherwise `roam`, choosing one of: walk onto visible cubes; take a weapon that improves the loadout (laser 3, lightning 2.6, gun 1.6, mortar 1.2); go to a supply drop if no hostile is in view and we can arrive within 6 s of landing; shoot NPC drones within 170 m and crates within 90 m (until 330 s, above 60% HP); rotate into the next circle; hold next to a wall inside it.
 
 Always on:
@@ -77,6 +77,7 @@ Always on:
 - 2026-11-20: loadout values laser 3, gun 2, lightning 1.3, mortar 1 (was lightning 2.6, gun 1.6). Calibrated sim 6.76 → 7.63 over 192 matches; FFA 11.80 → 11.96.
 - 2026-11-20: submission 2 (`6df0e10`, long range + gun/laser) scored 3.98 against 4.44, although the sim predicted +2.9. The sim cannot rank these changes, even after adding tree occlusion (trees block about half of building-clear sightlines). Defaults go back to the 4.44 behaviour; `idleRegen` and `avoidLightning` stay off. From here, a behaviour change ships only if a real submission shows it. Submission 3 replays the 4.44 behaviour to measure run-to-run noise on the fixed seeds.
 - 2026-11-20: after submission 3 matched 4.44 exactly, each submission is an exact A/B on the 48 seeds. Candidate 4: tree-aware cover and peek spots (`treeCover`, a tree-only hidden spot costs 40% of an exposed one) plus `idleRegen` on.
+- 2026-11-20: submission 4 (tree cover + idle regen) scored 4.00. Both passive changes so far lost about 0.45 (long range 3.98). House bots never fight each other, so our score is roughly how many house bots die before us, mostly by our hand; time spent hiding gives hunters time to gather and to regenerate. Both flags off. Candidate 5: `reengageHp` 0.85 → 0.65. Regen runs at 45 HP/s after 5 s without damage whether we stand still or roam, so the `regen` state adds only silence, and while in it we ignore a visible hunter until it hits us. Rejected: armor before plating (plating ×1.15 max HP beats armor's ×1.087 effective HP per stack, per `hello.config.upgrades`), longer gun range (the direction that lost), skipping drops (3 cubes plus full HP and energy).
 - 2026-11-20: tree occlusion (`World.sightClear`/`treesBlock`). Trunks block sight; crowns block when the path through them is longer than ln(1/canopyBlockT)/canopyDensity = 3.96 m (our reading of `rules`, unverified). The sim's vision uses it, and so do the bot's cover and peek searches (`treeCover`).
 - 2026-11-20: the simulator drives bots in-process (`botController`), not over pipes. The protocol path is covered by `check.py` locally and in Docker; in-process runs are about 1.5 s per match.
 
@@ -90,6 +91,8 @@ Always on:
 | 2026-11-20 | `node --run test` | 10/10 pass (includes a 10 000-observation fuzz test) |
 | 2026-11-20 | Sim, 96 practice matches | 2.92 ± 0.39 points (kit example: 0.98 ± 0.30 on 48) |
 | 2026-11-20 | Sim, 96 FFA matches | 11.10 ± 0.98 points (the sim's FFA opponents are weak) |
+| 2026-11-20 | Sim at candidate 5 (`reengageHp` 0.65), 96 practice matches, sanity only | 3.26 ± 0.72 points, no exceptions, 3 zone deaths, act() max 19.5 ms with parallel workers |
+| 2026-11-20 | Checks at candidate 5 | typecheck 0 errors; test 10/10; local check PASS 300/300 p99 0.7 ms; Docker check PASS 300/300 p99 4.3 ms, max 9.7 ms; sim 12 matches, 1 worker: act() p99 0.25 ms, max 4.3 ms |
 | 2026-11-20 | Sim act() timing, 12 FFA matches, 1 worker | p50 0.00 ms, p99 0.15 ms, max 6.3 ms |
 
 ## Submissions
@@ -101,3 +104,4 @@ Practice score = the mean of 16 − place over 48 matches against the house squa
 | 1 | 2026-11-20 | `65ce172` | 4.44 | First submission. Sim had predicted 2.92: the sim squad is too strong. |
 | 2 | 2026-11-20 | `6df0e10` | 3.98 | Long range (gun 170 m, laser 210 m), gun+laser loadout. Sim predicted 7.63: its long-range model was wrong. |
 | 3 | 2026-11-20 | `ecbee26` | 4.44 | Same behaviour as #1: identical score, so practice scoring is deterministic. |
+| 4 | 2026-11-20 | `096c710` (bot = `029df2d`) | 4.00 | `treeCover` + `idleRegen` on. Worse than 4.44; both turned off again. |
