@@ -44,12 +44,12 @@ export const P = {
   lootRange: 170,
   cubeRange: 90,
   /** Engagement range keeping by main weapon (meters). */
-  rangeGun: 75,
+  rangeGun: 100,
   rangeLaser: 120,
   rangeLightning: 28,
   rangeMortar: 110,
   /** Supply drops: go when nothing hostile is in sight and our ETA is within this many seconds of landing. */
-  dropSlack: 30,
+  dropSlack: 6,
   dropMaxDist: 300,
   /** A* budget: at most one search per decision, only if less than this many ms were used, at most this many cells. */
   pathBudgetMs: 12,

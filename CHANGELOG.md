@@ -4,7 +4,11 @@ Every change to the bot, the simulator and the project setup, newest first, with
 
 ## 2026-11-20
 
-### Unreleased (pending submission 9)
+### Unreleased (pending submission 10)
+- `dropSlack` back to 6 s.
+- `rangeGun` 75 → 100 m: gun fights (no laser held) keep 100 m. Long range was never tested without `idleRegen` (`PATTERNS.md` pattern 1).
+
+### `944ca5c`: chase landed drops. Practice **4.38** (submission 9)
 - `dropSlack` 6 → 30 s: chase a landed, untaken supply drop anywhere within `dropMaxDist`. Before, the arrival rule limited landed drops to about 70 m, because `lands_in` is 0 once a drop is down.
 
 ### `7a3a25a`: chase supply drops out to 300 m. Practice **4.46** (submission 8, new best)
