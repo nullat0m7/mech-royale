@@ -52,7 +52,7 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 
 ## Current focus (2026-11-20)
 
-**Status (2026-11-20):** Best practice 4.44 (`65ce172`, `ecbee26`); pending submission 5: `reengageHp` 0.65. Submit: push `main`; owner submits the repo URL (scorer builds HEAD); when asking, give the full 40-char commit hash (`git rev-parse HEAD`); log the score in `docs/bot.md`, `CHANGELOG.md`. Keep a change only if its real score beats the best.
+**Status (2026-11-20):** Best practice 4.44 (`65ce172`, `ecbee26`); pending: #5 `reengageHp` 0.65, #6 +`farmHp` 0.85. Submit: push `main`; owner submits the repo URL (scorer builds HEAD); when asking, give the full 40-char commit hash (`git rev-parse HEAD`); log the score in `docs/bot.md`, `CHANGELOG.md`. Keep a change only if its real score beats the best.
 
 **Observations** (add each new one, dated; at most 800 words here, overflow to `CLAUDE2.md`):
 - 2026-11-20: Practice scoring is deterministic (same behaviour scored 4.44 twice). Every score change is real; never submit a replicate.
