@@ -52,4 +52,4 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 
 ## Current focus (2026-11-20)
 
-**Status (2026-11-20):** Bot v1 in `bot/` passes `node --run verify` (check 300/300 local and in Docker sandbox). Next: local simulator (`sim/`), then tune against practice scores logged in `docs/bot.md`.
+**Status (2026-11-20):** Bot in `bot/` passes `node --run verify` (check 300/300 local and Docker sandbox, 10/10 tests). Local sim in `sim/` (`node --run sim`). Next: first practice score, then calibrate the sim's house squad and tune (`docs/bot.md`).

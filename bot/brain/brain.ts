@@ -218,6 +218,11 @@ export class Brain {
         target = tg
       }
     }
+    // an NPC drone shooting us while no mech is around: kill it (2 cubes) rather than soak hits
+    if (!target && this.lastHitBy !== null && this.lastHitBy >= 100 && t - this.lastHitT < 3) {
+      const npc = this.tracks.get(this.lastHitBy)
+      if (npc && t - npc.seen < 1) target = this.targetOf(npc)
+    }
     this.curTarget = target ? target.id : -1
     const hostileCount = hostiles.filter((h) => Math.hypot(h.pos[0] - x, h.pos[1] - y) < 220).length
     const recentlyHit = t - this.lastHitT < 4

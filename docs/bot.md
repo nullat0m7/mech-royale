@@ -29,9 +29,19 @@ Run from the repo root. In Claude Code's sandbox, use `node --run`, never `npm` 
 | `node --run docker:build` | Builds the image for linux/amd64. |
 | `node --run check:docker` | Conformance check against the image with the match sandbox flags. |
 | `node --run verify` | All of the above in order. Run before every push that will be submitted. |
-| `node --run sim -- …` | Local simulator (see `tools/run.ts`). |
+| `node --run sim -- --matches 96 [--mode ffa] [--bot example] [-v]` | Local simulator: mean points with 95% CI, places, death causes, damage and accuracy, act() timing. `MECH_PARAMS='{"retreatHp":0.5}'` A/B-tests a parameter on the same seeds; `SEEDS=1001 TRACE_ALL=1 … -v --workers 1` prints a decision trace. Timing is only meaningful with `--workers 1` (parallel workers contend for CPU). |
 
-## Behaviour (v1)
+## Simulator (`sim/`)
+
+`sim/engine.ts` approximates the server from `protocol.md`: physics with wall sliding, all four weapons, NPC drones, crates, loot, cubes and offers, supply drops, the zone, vision and sound. It ignores trees, and collision uses the centre plus four rim points. `sim/house.ts` models the practice squad as the track page describes it:
+- Shared vision; they never fight each other.
+- Joins: one at 20 s, 2 more per house bot killed, all at 240 s.
+- Position intel every 8 s.
+- Aim noise by tier (2.6°, 1.5°, 0.9°, 0.5°).
+
+It also has a simple free-for-all opponent and the kit's example bot. Every number in it is a guess. The kit example scores 0.98 in the sim against 1.15 on the real board, so treat sim results as a comparison between versions, not a forecast.
+
+## Behaviour
 
 Each decision the brain picks one mode, in this order:
 
@@ -50,6 +60,10 @@ Always on:
   - Laser: start charging when the cooldown is nearly done; release when full and on target.
   - Gun: lead by intercept time; fire when the slewed aim is within the target's angular radius.
   - Mortar: low arc, or high arc when the target has no line of sight.
+- Targeting: the score favours line of fire, low HP (`targetHpWeight`) and the current target (`targetStick`), so damage turns into kills instead of being spread across hunters that regenerate. An NPC drone that hits us while no mech is in view becomes the target.
+- Fight position: every 0.5 s, sample spots within 30 m that keep a line of fire to the target but hide us from other tracked hostiles; move there. The retreat threshold rises by 15% per extra hostile with a line of fire on us.
+- Reachability: the walk grid is split into regions that are mutually walkable. Goals (cubes, loot, drops, zone) must be in our region. If we end up in a small sealed yard (under 3000 cells), we jet over the wall toward the goal.
+- Budget: at most one A* per decision (≤25 000 cells, only if under 12 ms used so far), and cover and peek searches consider at most the 4 nearest threats.
 - FFA detection: if more mechs died than we killed plus one, the match is a free-for-all (`ffa`), and NPC farming stops while hostiles are near.
 
 ## Decisions
@@ -58,6 +72,7 @@ Always on:
 - 2026-11-20: type checking with the locally installed Deno (`deno check`), not `typescript` from npm. Zero dependencies, nothing to vet for slopsquatting.
 - 2026-11-20: the kit stays vendored at `mechfight-kit/` (check tool, arena, schema). Root `protocol.md` is an identical copy kept where the owner put it.
 - 2026-11-20: the GitHub repo is already public (`gh repo view`: PUBLIC).
+- 2026-11-20: the simulator drives bots in-process (`botController`), not over pipes. The protocol path is covered by `check.py` locally and in Docker; in-process runs are about 1.5 s per match.
 
 ## Measurements
 
@@ -65,6 +80,11 @@ Always on:
 | --- | --- | --- |
 | 2026-11-20 | `node --run check` (local) | PASS 300/300, p99 0.5 ms, world ready 30 ms |
 | 2026-11-20 | Docker sandbox check (amd64 emulated on arm64 Mac) | PASS 300/300, p99 3.4 ms, max 10.3 ms, ready 1143 ms |
+| 2026-11-20 | Docker sandbox check at `df534b7`+NPC fix | PASS 300/300, p99 4.1 ms, max 9.7 ms, ready 1164 ms |
+| 2026-11-20 | `node --run test` | 10/10 pass (includes a 10 000-observation fuzz test) |
+| 2026-11-20 | Sim, 96 practice matches | 2.92 ± 0.39 points (kit example: 0.98 ± 0.30 on 48) |
+| 2026-11-20 | Sim, 96 FFA matches | 11.10 ± 0.98 points (the sim's FFA opponents are weak) |
+| 2026-11-20 | Sim act() timing, 12 FFA matches, 1 worker | p50 0.00 ms, p99 0.15 ms, max 6.3 ms |
 
 ## Submissions
 
