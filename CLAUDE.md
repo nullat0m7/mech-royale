@@ -52,4 +52,4 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 
 ## Current focus (2026-11-20)
 
-**Status (2026-11-20):** Bot in `bot/` passes `node --run verify` (check 300/300 local and Docker sandbox, 10/10 tests). Local sim in `sim/` (`node --run sim`). Next: first practice score, then calibrate the sim's house squad and tune (`docs/bot.md`).
+**Status (2026-11-20):** Practice: `65ce172` 4.44 (best), `6df0e10` 3.98. `main` (`f89def7`+) replays the 4.44 behaviour to measure noise. The sim (`node --run sim`) finds bugs but mis-ranks tactics: ship behaviour changes only on real scores (`docs/bot.md`).
