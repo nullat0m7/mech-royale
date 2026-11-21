@@ -3,15 +3,18 @@
  * It is not the real server: trees are ignored, collisions use the centre point plus four rim points,
  * and NPC drones walk without pathfinding. Practice scores decide; this finds bugs and compares versions.
  */
-import type { Action, Hello, Observation } from "../bot/mechfight.ts"
+import type { Hello, Observation } from "../bot/mechfight.ts"
 import { aimAt, rng, wrap } from "../bot/world/geom.ts"
 import type { World } from "../bot/world/map.ts"
 import type { Nav } from "../bot/world/nav.ts"
 
+/** What a controller asks for each decision (the protocol action without `tick`, loosely typed). */
+export type Cmd = { move?: number[]; boost?: boolean; jump?: boolean; aim?: number[]; fire?: boolean[]; reload?: boolean; pick?: number; take?: number; drop?: number }
+
 export type Controller = {
   name: string
   /** Called once per decision for every alive mech it drives. Return the action (tick is filled in). */
-  act(sim: Sim, m: Mech, obs: Observation | null): Omit<Action, "tick">
+  act(sim: Sim, m: Mech, obs: Observation | null): Cmd
   /** True when act() needs a full protocol observation (our bot); house AI reads the engine directly. */
   wantsObs: boolean
 }
@@ -23,7 +26,7 @@ export type Mech = {
   pos: number[]
   vel: number[]
   aim: number[]
-  cmd: Omit<Action, "tick">
+  cmd: Cmd
   hp: number
   energy: number
   grounded: boolean
@@ -367,7 +370,7 @@ export class Sim {
       if (!m.alive) continue
       const obs = m.ctl.wantsObs ? this.observe(m) : null
       const t0 = performance.now()
-      let a: Omit<Action, "tick">
+      let a: Cmd
       try {
         a = m.ctl.act(this, m, obs)
       } catch (e) {

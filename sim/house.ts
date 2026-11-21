@@ -4,9 +4,9 @@
  * early, more join with each house bot it kills, and all come late. Every number is a guess to be
  * calibrated against real practice scores (docs/bot.md).
  */
-import type { Action, Hello, Observation } from "../bot/mechfight.ts"
+import type { Hello, Observation } from "../bot/mechfight.ts"
 import { aimAt, interceptTime, wrap } from "../bot/world/geom.ts"
-import type { Controller, Mech, Sim } from "./engine.ts"
+import type { Cmd, Controller, Mech, Sim } from "./engine.ts"
 
 export type HouseTuning = {
   joinStart: number // s, first hunter joins
@@ -93,7 +93,7 @@ function zoneMove(sim: Sim, m: Mech): number[] | null {
 }
 
 /** Fire control shared by house and FFA bots: aim with tier noise and partial lead, fire what fits. */
-function shoot(sim: Sim, m: Mech, tgt: Mech, act: Omit<Action, "tick">) {
+function shoot(sim: Sim, m: Mech, tgt: Mech, act: Cmd) {
   const tier = m.tier
   const muzzle = [m.pos[0], m.pos[1], m.pos[2] + m.stats.muzzle_height]
   const c = [tgt.pos[0], tgt.pos[1], tgt.pos[2] + tgt.stats.height / 2]
@@ -191,7 +191,7 @@ export function houseController(): Controller {
       const order = sim.mechs.filter((q) => q.ctl.name === "house" && q.alive).sort((a, b) => a.tier - b.tier || a.id - b.id)
       const rank = order.indexOf(m)
       m.joined = rank >= 0 && rank < Math.max(0, n - killed)
-      const act: Omit<Action, "tick"> = { aim: m.cmd.aim ?? m.aim, ...(m.offer ? { pick: 0 } : {}) }
+      const act: Cmd = { aim: m.cmd.aim ?? m.aim, ...(m.offer ? { pick: 0 } : {}) }
       const zm = zoneMove(sim, m)
       if (m.joined && tgt.alive && sim.t - sq.lastIntel > HOUSE.intelEvery && sim.t - sq.lastSeen > HOUSE.intelEvery) {
         sq.lastIntel = sim.t
@@ -254,7 +254,7 @@ export function ffaController(): Controller {
           tgt = o
         }
       }
-      const act: Omit<Action, "tick"> = { aim: m.cmd.aim ?? m.aim, ...(m.offer ? { pick: 0 } : {}) }
+      const act: Cmd = { aim: m.cmd.aim ?? m.aim, ...(m.offer ? { pick: 0 } : {}) }
       const zm = zoneMove(sim, m)
       if (tgt) {
         shoot(sim, m, tgt, act)
