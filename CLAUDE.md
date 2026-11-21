@@ -44,6 +44,7 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 | Any code edit | `docs/agent/quality-bar.md` |
 | Checks: `node --run verify` (sandbox: `node --run`, not `npm`/`python3`; Docker outside it) | `docs/bot.md` |
 | Bot design, decisions, scores; history | `docs/bot.md`; `CHANGELOG.md` (entry per change) |
+| Scoring patterns; choosing the next candidate | `PATTERNS.md` |
 | Rules, messages, map | `protocol.md`, `mechfight-kit/mechfight.schema.json` |
 | Scoring, submission, deadline | https://www.joinbuilders.org/buildathon/tracks/builders |
 | Finish, commit | skills `close-out-unit`, `checkpoint-and-sync` (on `main`, per the Git bullet) |
@@ -52,10 +53,10 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 
 ## Current focus (2026-11-20)
 
-**Status (2026-11-20):** Best practice 4.44 (`65ce172`, `ecbee26`); pending #7: crates/cubes to 140 m. Submit: push `main`; owner submits the repo URL (scorer builds HEAD); when asking, give the full 40-char commit hash (`git rev-parse HEAD`); log the score in `docs/bot.md`, `CHANGELOG.md`. Keep a change only if its real score beats the best.
+**Status (2026-11-20):** Best practice 4.44 (`65ce172`, `ecbee26`); pending #7: crates/cubes to 140 m. Submit: push `main`; owner submits the repo URL (scorer builds HEAD); when asking, give the full 40-char commit hash (`git rev-parse HEAD`); log the score in `docs/bot.md`, `CHANGELOG.md`, `PATTERNS.md`. Keep a change only if its real score beats the best.
 
 **Observations** (add each new one, dated; at most 800 words here, overflow to `CLAUDE2.md`):
 - 2026-11-20: Practice scoring is deterministic (same behaviour scored 4.44 twice). Every score change is real; never submit a replicate.
 - 2026-11-20: The sim mis-ranks tactics: long range (`6df0e10`) was +2.9 in the sim, −0.46 real. Use it for bugs, timing, crashes; decide tactics by real scores.
-- 2026-11-20: Passive changes lost: long range 3.98, tree cover + idle regen 4.00. House bots never fight each other: score ≈ house bots dying before us.
+- 2026-11-20: Both ~0.45 losses had `idleRegen` on; long range alone is untested. See `PATTERNS.md`.
 - More: `CLAUDE2.md`.

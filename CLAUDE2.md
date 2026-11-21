@@ -4,6 +4,8 @@
 
 ## Observations (continued)
 
+- 2026-11-20: Sim results depend on `--workers`: the same 4.44 params on the same 48 seeds score 3.33 to 3.77 across worker counts, probably because the A* gate is wall-clock (`pathBudgetMs`). Compare sim runs only at equal worker counts.
+- 2026-11-20: House bots die only to us, the zone, NPC drones or their own mortar splash. Clock-out ranking by HP cannot happen: the circle reaches radius 0 at 415 s at 260 HP/s, before the 480 s limit (`PATTERNS.md` pattern 2).
 - 2026-11-20: Every change from the 4.44 behaviour has lost so far: long range 3.98, tree cover + idle regen 4.00, reengage 0.65 + farm at 85% 4.31, reengage 0.65 alone 4.40. The only gradient seen: farming less cost about 0.09.
 - 2026-11-20: `f4f93f8` stacked two changes (`reengageHp` 0.65, `farmHp` 0.85) and scored 4.31. A stacked score cannot say which change moved it, so submit one change at a time.
 - 2026-11-20: Trees block about half the sightlines buildings leave open, never shots; hunters track us 5 s after losing sight.

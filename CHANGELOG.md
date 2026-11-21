@@ -5,6 +5,7 @@ Every change to the bot, the simulator and the project setup, newest first, with
 ## 2026-11-20
 
 ### Unreleased (pending submission 7)
+- Added `PATTERNS.md`: patterns in the practice scores with evidence and confidence, and the next candidates. Linked from `CLAUDE.md`. Corrected `docs/bot.md`: `6df0e10` changed seven things, not two (`idleRegen` was in both ~0.45 losses); the regen state runs to 85%, not 65%; the sim uses 1 hunter per kill.
 - `reengageHp` back to 0.85 (the 4.44 value).
 - `crateRange` and `cubeRange` 90 → 140 m: shoot crates farther out and walk to the cube each one drops. Crates do not shoot back, and each gives a cube (+4% max HP and damage) plus a weapon half the time.
 

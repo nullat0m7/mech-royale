@@ -35,7 +35,7 @@ Run from the repo root. In Claude Code's sandbox, use `node --run`, never `npm` 
 
 `sim/engine.ts` approximates the server from `protocol.md`: physics with wall sliding, all four weapons, NPC drones, crates, loot, cubes and offers, supply drops, the zone, vision and sound. Vision includes tree occlusion; shots ignore trees, as in the real game. Collision uses the centre plus four rim points. `sim/house.ts` models the practice squad as the track page describes it:
 - Shared vision; they never fight each other.
-- Joins: one at 20 s, 2 more per house bot killed, all at 240 s.
+- Joins: one at 20 s, 2 more per house bot killed, all at 240 s. The calibrated sim uses 1 per kill (`HOUSE.joinPerKill`).
 - Position intel every 8 s.
 - Aim noise by tier (2.6°, 1.5°, 0.9°, 0.5°).
 
@@ -48,7 +48,7 @@ Each decision the brain picks one mode, in this order:
 1. `zone`: outside the circle, or the trip to 70% of the next radius would not finish before the shrink ends. Boosts and still shoots targets of opportunity.
 2. `fight`: a hostile mech is in view and HP is at least 40% (+15% per extra hostile with a line of fire on us; 75% when 3 or more hostiles are near). Keeps a preferred range by weapon (gun 75 m, laser 120 m, lightning 28 m) and strafes, flipping direction at random every 0.6–1.8 s.
 3. `retreat`: hostiles or recent hits while too weak to fight. Walks to the nearest sampled point that no tracked hostile can see, facing the threat.
-4. `regen`: after a retreat (or, with `idleRegen`, whenever nothing is in view and HP is under 85%), stands still (silent) facing the last hit until `reengageHp` (65%) HP. Regen itself (45 HP/s after 5 s unharmed) also runs while roaming.
+4. `regen`: after a retreat (or, with `idleRegen`, whenever nothing is in view and HP is under 85%), stands still (silent) facing the last hit until `reengageHp` (85%) HP. Regen itself (45 HP/s after 5 s unharmed) also runs while roaming.
 5. Otherwise `roam`, choosing one of: walk onto visible cubes within 140 m; take a weapon that improves the loadout (laser 3, lightning 2.6, gun 1.6, mortar 1.2); go to a supply drop if no hostile is in view and we can arrive within 6 s of landing; shoot NPC drones within 170 m and crates within 140 m (until 330 s, above 60% HP); rotate into the next circle; hold next to a wall inside it.
 
 Always on:
@@ -108,7 +108,7 @@ Practice score = the mean of 16 − place over 48 matches against the house squa
 | # | Date (ET) | Commit | Score | Notes |
 | --- | --- | --- | --- | --- |
 | 1 | 2026-11-20 | `65ce172` | 4.44 | First submission. Sim had predicted 2.92: the sim squad is too strong. |
-| 2 | 2026-11-20 | `6df0e10` | 3.98 | Long range (gun 170 m, laser 210 m), gun+laser loadout. Sim predicted 7.63: its long-range model was wrong. |
+| 2 | 2026-11-20 | `6df0e10` | 3.98 | Seven changes: long range (gun 170 m, laser 210 m), loadout gun 2 / lightning 1.3 / mortar 1, `idleRegen` and `avoidLightning` on, `retreatPerExtra` 0.3, `outnumbered` 2. Sim predicted 7.63. |
 | 3 | 2026-11-20 | `ecbee26` | 4.44 | Same behaviour as #1: identical score, so practice scoring is deterministic. |
 | 4 | 2026-11-20 | `096c710` (bot = `029df2d`) | 4.00 | `treeCover` + `idleRegen` on. Worse than 4.44; both turned off again. |
 | 5 | 2026-11-20 | `f4f93f8` | 4.31 | `reengageHp` 0.65 + `farmHp` 0.85 together (`fe134fc`, `reengageHp` alone, was never scored). Worse than 4.44; `farmHp` back to 0.6. |
