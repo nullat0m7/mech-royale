@@ -76,7 +76,8 @@ Always on:
 - 2026-11-20: engagement range 170 m (gun) / 210 m (laser), outnumbered at 2, retreat +30% per extra shooter. Calibrated sim: 4.76 → 6.76 over 192 matches; FFA sim 11.10 → 11.80. Our aim is precise and the house aim is noisy, so long range favours us.
 - 2026-11-20: loadout values laser 3, gun 2, lightning 1.3, mortar 1 (was lightning 2.6, gun 1.6). Calibrated sim 6.76 → 7.63 over 192 matches; FFA 11.80 → 11.96.
 - 2026-11-20: submission 2 (`6df0e10`, long range + gun/laser) scored 3.98 against 4.44, although the sim predicted +2.9. The sim cannot rank these changes, even after adding tree occlusion (trees block about half of building-clear sightlines). Defaults go back to the 4.44 behaviour; `idleRegen` and `avoidLightning` stay off. From here, a behaviour change ships only if a real submission shows it. Submission 3 replays the 4.44 behaviour to measure run-to-run noise on the fixed seeds.
-- 2026-11-20: tree occlusion (`World.sightClear`/`treesBlock`). Trunks block sight; crowns block when the path through them is longer than ln(1/canopyBlockT)/canopyDensity = 3.96 m (our reading of `rules`, unverified). The sim's vision uses it; the bot does not yet.
+- 2026-11-20: after submission 3 matched 4.44 exactly, each submission is an exact A/B on the 48 seeds. Candidate 4: tree-aware cover and peek spots (`treeCover`, a tree-only hidden spot costs 40% of an exposed one) plus `idleRegen` on.
+- 2026-11-20: tree occlusion (`World.sightClear`/`treesBlock`). Trunks block sight; crowns block when the path through them is longer than ln(1/canopyBlockT)/canopyDensity = 3.96 m (our reading of `rules`, unverified). The sim's vision uses it, and so do the bot's cover and peek searches (`treeCover`).
 - 2026-11-20: the simulator drives bots in-process (`botController`), not over pipes. The protocol path is covered by `check.py` locally and in Docker; in-process runs are about 1.5 s per match.
 
 ## Measurements
@@ -99,3 +100,4 @@ Practice score = the mean of 16 − place over 48 matches against the house squa
 | --- | --- | --- | --- | --- |
 | 1 | 2026-11-20 | `65ce172` | 4.44 | First submission. Sim had predicted 2.92: the sim squad is too strong. |
 | 2 | 2026-11-20 | `6df0e10` | 3.98 | Long range (gun 170 m, laser 210 m), gun+laser loadout. Sim predicted 7.63: its long-range model was wrong. |
+| 3 | 2026-11-20 | `ecbee26` | 4.44 | Same behaviour as #1: identical score, so practice scoring is deterministic. |

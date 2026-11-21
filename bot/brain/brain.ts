@@ -558,10 +558,12 @@ export class Brain {
         if (this.nav.roof[k] || this.nav.blocked[k]) continue
         if (Math.hypot(px - zNow.x, py - zNow.y) > zNow.r - 5 && Math.hypot(px - next.x, py - next.y) > safeR) continue
         const pz = this.nav.h[k] + 4.5
+        // a wall stops shots; trees only stop sight (they can still shoot us while tracking us)
         let seen = 0
         for (const th of threats) {
           if (r + seen * 200 >= bestS) break
-          if (this.world.clear(th, [px, py, pz])) seen++
+          const p = [px, py, pz]
+          if (this.world.clear(th, p)) seen += this.P.treeCover && this.world.treesBlock(th, p) ? this.P.treeCoverCost : 1
         }
         // moving toward a threat is worse than away
         let toward = 0
@@ -660,7 +662,10 @@ export class Brain {
     const score = (px: number, py: number, pz: number): number => {
       if (!this.world.clear([px, py, pz + 7], c)) return Infinity
       let s = 0
-      for (const o of others) if (this.world.clear(o, [px, py, pz + 4.5])) s += 100
+      for (const o of others) {
+        const p = [px, py, pz + 4.5]
+        if (this.world.clear(o, p)) s += this.P.treeCover && this.world.treesBlock(o, p) ? 100 * this.P.treeCoverCost : 100
+      }
       const d = Math.hypot(c[0] - px, c[1] - py)
       return s + Math.abs(d - pref) * 0.3 + Math.hypot(px - x, py - y) * 0.5
     }

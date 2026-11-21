@@ -8,7 +8,7 @@ Follow literally. This file overrides every other doc, plan, and memory; on conf
 
 ## Who I am
 
-Solo owner-developer of mech-royale: a bot piloting one mech in a 16-mech battle royale over protocol `mechfight/1`, submitted as a Docker image. Bot: TypeScript on Node 24, no runtime deps (decided 2026-11-20, `docs/bot.md`). Not for money: I optimize the track score (joinbuilders.org/buildathon/tracks/builders): mean of 16 − place per match, 15 for a win, 0 for dying first. Survival beats kills. Baseline to beat: 1.15. Practice: 48 matches vs 15 cooperating house bots that hunt the weakest. Cutoff Sun 2026-11-22 11:00 ET. Limits: 50 ms/tick (late = no fire), 1 CPU, 512 MB, no runtime network, writes only to `/tmp`, repo ≤20 MB, build ≤10 min, pin versions, 4 submissions/hour. Then: finished verified work, my attention, speed.
+Solo owner-developer of mech-royale: a bot piloting one mech in a 16-mech battle royale over protocol `mechfight/1`, submitted as a Docker image. Bot: TypeScript on Node 24, no runtime deps (decided 2026-11-20, `docs/bot.md`). Not for money: I optimize the track score (joinbuilders.org/buildathon/tracks/builders): mean of 16 − place per match, 15 for a win, 0 for dying first. Survival beats kills. Baseline to beat: 1.15. Practice: 48 fixed-seed matches vs 15 cooperating house bots; deterministic (same code, same score). Cutoff Sun 2026-11-22 11:00 ET. Limits: 50 ms/tick (late = no fire), 1 CPU, 512 MB, no runtime network, writes only to `/tmp`, repo ≤20 MB, build ≤10 min, pin versions, 4 submissions/hour. Then: finished verified work, my attention, speed.
 
 ## How I work
 
@@ -42,8 +42,8 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 | Task | Read first |
 | --- | --- |
 | Any code edit | `docs/agent/quality-bar.md` |
-| Run, checks (`node --run verify`; sandbox: `node --run`, never `npm`/`python3`; Docker outside sandbox), submit | `docs/bot.md`, `mechfight-kit/README.md` |
-| Bot design, params, decisions, submissions log | `docs/bot.md` |
+| Checks: `node --run verify` (sandbox: `node --run`, not `npm`/`python3`; Docker outside it) | `docs/bot.md` |
+| Bot design, decisions, scores; history | `docs/bot.md`; `CHANGELOG.md` (entry per change) |
 | Rules, messages, map | `protocol.md`, `mechfight-kit/mechfight.schema.json` |
 | Scoring, submission, deadline | https://www.joinbuilders.org/buildathon/tracks/builders |
 | Finish, commit | skills `close-out-unit`, `checkpoint-and-sync` (on `main`, per the Git bullet) |
@@ -52,4 +52,11 @@ Read it first. Skills: `.claude/skills/` or `~/.claude/skills/`.
 
 ## Current focus (2026-11-20)
 
-**Status (2026-11-20):** Practice: `65ce172` 4.44 (best), `6df0e10` 3.98. `main` (`f89def7`+) replays the 4.44 behaviour to measure noise. The sim (`node --run sim`) finds bugs but mis-ranks tactics: ship behaviour changes only on real scores (`docs/bot.md`).
+**Status (2026-11-20):** Best practice 4.44 (`65ce172`, `ecbee26`). Submit: push `main`; owner submits the repo URL (scorer builds HEAD); log the score in `docs/bot.md`, `CHANGELOG.md`. Keep a change only if its real score beats the best.
+
+**Observations** (add each new one, dated; at most 800 words here, overflow to `CLAUDE2.md`):
+- 2026-11-20: Practice scoring is deterministic (same behaviour scored 4.44 twice). Every score change is real; never submit a replicate.
+- 2026-11-20: The sim mis-ranks tactics: long range (`6df0e10`) was +2.9 in the sim, −0.46 real. Use it for bugs, timing, crashes; decide tactics by real scores.
+- 2026-11-20: No public replays, match data or debug downloads exist. The practice score is the only real feedback.
+- 2026-11-20: Trees block about half the sightlines buildings leave open, never shots; hunters track us 5 s after losing sight.
+- More: `CLAUDE2.md`.
