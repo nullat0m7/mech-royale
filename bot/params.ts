@@ -49,7 +49,7 @@ export const P = {
   rangeLightning: 28,
   rangeMortar: 110,
   /** Supply drops: go when nothing hostile is in sight and our ETA is within this many seconds of landing. */
-  dropSlack: 6,
+  dropSlack: 30,
   dropMaxDist: 300,
   /** A* budget: at most one search per decision, only if less than this many ms were used, at most this many cells. */
   pathBudgetMs: 12,

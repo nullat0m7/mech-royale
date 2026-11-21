@@ -15,7 +15,8 @@ Behaviour column from `git diff <4.44 bot> <commit> -- bot/` (`65ce172` or `ecbe
 | `f4f93f8` | `reengageHp` 0.65, `farmHp` 0.85 | 4.31 | −0.13 | 207 |
 | `926e5b7` | `reengageHp` 0.65 | 4.40 | −0.04 | 211 |
 | `aeb2484` | `crateRange`, `cubeRange` 90 → 140 m | 4.35 | −0.09 | 209 |
-| HEAD | `dropMaxDist` 220 → 300 m | pending | | |
+| `7a3a25a` | `dropMaxDist` 220 → 300 m | **4.46** | +0.02 | 214 |
+| HEAD | `7a3a25a` plus `dropSlack` 6 → 30 s | pending | | |
 
 ## Patterns
 
@@ -47,7 +48,8 @@ Stacked scores cannot be split (`CLAUDE2.md` Observations, pattern 4). The first
 - **Promising, low to moderate confidence: more cubes without standing still.** A cube adds 4% max HP and damage and heals the HP it adds (§10), and HP decides a late game (pattern 2). Untested ideas:
   - Dropped 2026-11-20 after `aeb2484` lost: `farmHp` 0.6 → 0.4 (`bot/params.ts:41`), more farming. A drone hits for 25 once per second (`config.npc`) and drops 2 cubes; crates never shoot. Risk: drones also kill house bots for us (0.45 per match in the sim, mechanism only).
   - `fightCubeRange` 30 → 45 m (`params.ts:35`). A killed mech drops all its cubes plus two (§10).
-  - Testing as submission 8: `dropMaxDist` 220 → 300 m (`params.ts:53`). A drop gives 3 cubes, full HP and energy, and lands 25 s after the call (§7 Supply drops); 300 m at 11.7 m/s is 26 s, inside the ETA rule at `brain.ts:505`.
+  - Scored 4.46 as submission 8, the first gain (+1 place-point), kept: `dropMaxDist` 220 → 300 m (`params.ts:53`). A drop gives 3 cubes, full HP and energy, and lands 25 s after the call (§7 Supply drops); 300 m at 11.7 m/s is 26 s, inside the ETA rule at `brain.ts:505`.
+  - Testing as submission 9: `dropSlack` 6 → 30 s (`params.ts:52`). Drops stay listed until captured (`protocol.md` §5 `drops`), but once one has landed `lands_in` is 0, so the 6 s slack chased landed drops only within about 70 m.
 - **Avoid, moderate confidence:** more standing still or hiding (`idleRegen`, `treeCover`, earlier retreat). Pattern 1.
 - **Avoid, moderate confidence:** tweaks expected to move only a few places; they cannot be told from re-roll noise (pattern 3).
 - **Open, low confidence:** long range alone (`rangeGun` 170 m) was never scored. Its only sim support is the bias in pattern 5, so it ranks below the cube ideas.
