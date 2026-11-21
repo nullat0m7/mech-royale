@@ -5,7 +5,7 @@
  */
 export const P = {
   /** "auto" detects a free-for-all from deaths we did not cause; "practice" / "ffa" force a mode (tests, league). */
-  mode: "auto" as "auto" | "practice" | "ffa",
+  mode: "ffa" as "auto" | "practice" | "ffa",
   /**
    * Value of each weapon kind in a loadout. Higher is kept; lower is swapped out. Below 0: never take it, and drop
    * it if held. A held mortar makes every laser hit on us cook off for +60% (protocol.md section 7), and house bots

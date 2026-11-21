@@ -20,7 +20,8 @@ Behaviour column from `git diff <4.44 bot> <commit> -- bot/` (`65ce172` or `ecbe
 | `3a7229f` | `7a3a25a` plus `rangeGun` 75 → 100 m | not reported | | |
 | `d2453c4` | `3a7229f` plus laser duck, mortar never held, FFA mode (inactive in practice) | 4.31 | −0.15 vs 4.46 | 207 |
 | `3a7455a` | `7a3a25a` plus kill securing, damage-first upgrades, `lootRange` 260, FFA mode | 3.90 | −0.56 vs 4.46 | 187 |
-| HEAD | `7a3a25a` practice play plus FFA mode (inactive in practice) | expected 4.46 | | |
+| `1314c3d` | `7a3a25a` practice play plus FFA mode (inactive in practice) | not submitted | | |
+| HEAD | probe 13: ghost (survival) play from the first tick | pending | | |
 
 ## Patterns
 

@@ -4,7 +4,10 @@ Every change to the bot, the simulator and the project setup, newest first, with
 
 ## 2026-11-21
 
-### 4.46 practice behaviour + free-for-all mode
+### Probe 13 (pending): survival play everywhere
+- `mode` "ffa": ghost mode from the first tick, practice included. Detector tests pass `mode: "auto"` explicitly.
+
+### `1314c3d`: 4.46 practice behaviour + free-for-all mode
 - #12 (3.90) reverted: `finishHp` 0, plating-first upgrades, `lootRange` 170. Strafe draw back to the original code (the `strafe*` parameters are gone).
 
 ### Ghost v2 (free-for-all only; practice play unchanged)

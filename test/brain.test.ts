@@ -16,18 +16,19 @@ const world = World.load(ROOT + "mechfight-kit/arena")
 const nav = new Nav(world)
 
 test("loadParams copies the defaults and never mutates them", () => {
-  const a = loadParams('{"retreatHp":0.5,"weaponPref":{"gun":9}}', { mode: "ffa" })
+  const mode0 = P.mode
+  const a = loadParams('{"retreatHp":0.5,"weaponPref":{"gun":9}}', { mode: mode0 === "ffa" ? "practice" : "ffa" })
   assert.equal(a.retreatHp, 0.5)
   assert.equal(a.weaponPref.gun, 9)
   assert.equal(a.weaponPref.laser, P.weaponPref.laser)
-  assert.equal(a.mode, "ffa")
+  assert.notEqual(a.mode, mode0)
   assert.notEqual(P.retreatHp, 0.5)
   assert.notEqual(P.weaponPref.gun, 9)
-  assert.equal(P.mode, "auto")
+  assert.equal(P.mode, mode0)
 })
 
 test("free-for-all is detected on the recorded match (3 deaths we did not cause by 24.9 s)", () => {
-  const brain = new Brain(hello, world, nav, loadParams(undefined))
+  const brain = new Brain(hello, world, nav, loadParams(undefined, { mode: "auto" }))
   let firstT = -1
   for (const o of recorded) {
     brain.act(structuredClone(o))
@@ -37,7 +38,7 @@ test("free-for-all is detected on the recorded match (3 deaths we did not cause 
 })
 
 test("deaths we caused never switch to free-for-all; practice mode never does", () => {
-  const brain = new Brain(hello, world, nav, loadParams(undefined))
+  const brain = new Brain(hello, world, nav, loadParams(undefined, { mode: "auto" }))
   const forced = new Brain(hello, world, nav, loadParams(undefined, { mode: "practice" }))
   let alive = 16
   for (let i = 0; i < 200; i++) {

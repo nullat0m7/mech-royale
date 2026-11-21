@@ -30,7 +30,8 @@ Rules live in `CLAUDE.md` and override this file. Design, decisions and the subm
 | `3a7229f` | pending | submission 10: `7a3a25a` plus `rangeGun` 100 m |
 | `d2453c4` | 4.31 | submission 11: laser duck, no mortar, FFA mode; practice parts reverted |
 | `3a7455a` | 3.90 | submission 12: kill securing, damage-first upgrades, `lootRange` 260; reverted |
-| HEAD of `main` | expected 4.46 | 4.46 practice play plus FFA mode; the build to lock for the final if nothing beats it |
+| `1314c3d` | not submitted | 4.46 practice play plus FFA mode |
+| HEAD of `main` | pending | probe 13: survival (ghost) play from the first tick |
 
 ## 1. Next (2026-11-21)
 
