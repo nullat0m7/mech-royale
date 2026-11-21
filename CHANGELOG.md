@@ -4,7 +4,10 @@ Every change to the bot, the simulator and the project setup, newest first, with
 
 ## 2026-11-21
 
-### Probe 13 (pending): survival play everywhere
+### Hunter (off) and back to 4.46 play
+- `mode` back to "auto". Hunter behaviour added behind `hunt` (off): sim −0.2 to −0.5 against the 4.46 play.
+
+### `8074641`: survival play everywhere. Practice **1.75** (probe 13)
 - `mode` "ffa": ghost mode from the first tick, practice included. Detector tests pass `mode: "auto"` explicitly.
 
 ### `1314c3d`: 4.46 practice behaviour + free-for-all mode

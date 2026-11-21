@@ -5,7 +5,7 @@
  */
 export const P = {
   /** "auto" detects a free-for-all from deaths we did not cause; "practice" / "ffa" force a mode (tests, league). */
-  mode: "ffa" as "auto" | "practice" | "ffa",
+  mode: "auto" as "auto" | "practice" | "ffa",
   /**
    * Value of each weapon kind in a loadout. Higher is kept; lower is swapped out. Below 0: never take it, and drop
    * it if held. A held mortar makes every laser hit on us cook off for +60% (protocol.md section 7), and house bots
@@ -72,6 +72,14 @@ export const P = {
    */
   finishHp: 0,
   finishSelf: 300,
+  /**
+   * Hunter: with no target and at least `huntHp` HP, walk toward the nearest mech seen in the last 12 s, else toward
+   * the last mech sound heard within `huntSoundS` s (near 40 m, mid 110 m, far 220 m along its bearing). Points are
+   * house bots dead before us (PATTERNS.md pattern 2); survival play scored 1.75 (probe 13), so go get kills.
+   */
+  hunt: false,
+  huntHp: 0.7,
+  huntSoundS: 15,
   /** Retreat to cover below this HP fraction; fight again above reengage. */
   retreatHp: 0.4,
   reengageHp: 0.85,

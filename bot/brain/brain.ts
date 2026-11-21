@@ -69,6 +69,10 @@ export class Brain {
   lastHitBy: number | null = null
   heardT = -99
   heardBearing = 0
+  /** Last mech sound at any distance, for hunting: time, bearing, distance class. */
+  huntSoundT = -99
+  huntBearing = 0
+  huntDist = 110
   kills = 0
   ffa = false
   /** Free-for-all detected early (P.ffaDetectT): play the ghost until the endgame. */
@@ -153,6 +157,12 @@ export class Brain {
       else if (e.type === "take_failed" && (e.reason === "gone" || e.reason === "have")) this.pickups.delete(e.id)
       else if (e.type === "took") this.pickups.delete(e.id)
     }
+    for (const s of obs.sounds)
+      if (["gun", "laser", "laser_charge", "lightning", "step", "boost", "jet", "reload", "mortar"].includes(s.kind)) {
+        this.huntSoundT = t
+        this.huntBearing = s.bearing
+        this.huntDist = s.dist === "near" ? 40 : s.dist === "mid" ? 110 : 220
+      }
     for (const s of obs.sounds) {
       if (s.dist === "far") continue
       if (["gun", "laser", "laser_charge", "lightning", "step", "boost", "jet", "reload"].includes(s.kind)) {
@@ -301,6 +311,7 @@ export class Brain {
     }
 
     if (mode === "roam") {
+      let hunt: number[] | null = null
       const loot = this.chooseLoot(obs, P.lootRange)
       const drop = this.chooseDrop(obs, hostileCount)
       const cube = this.nearestCube(obs, P.cubeRange)
@@ -319,6 +330,10 @@ export class Brain {
       } else if (loot) {
         mode = "loot"
         goal = loot.pos
+      } else if ((hunt = P.hunt && !this.ghost && hpFrac >= P.huntHp ? this.huntGoal(obs, zNow) : null)) {
+        mode = "hunt"
+        goal = hunt
+        wantBoost = true
       } else if (npc) {
         mode = "farm"
         fightTarget = npc
@@ -554,6 +569,27 @@ export class Brain {
     out.goal = this.campSpot(obs, next)
     out.quiet = true
     return out
+  }
+
+  /** Where to hunt: the nearest mech seen in the last 12 s, else the last mech sound; inside the current zone. */
+  private huntGoal(obs: Observation, zNow: Circle): number[] | null {
+    const t = obs.t
+    const [x, y] = obs.self.pos
+    let best: number[] | null = null
+    let bd = Infinity
+    for (const tr of this.tracks.values()) {
+      if (tr.kind !== "mech") continue
+      const d = Math.hypot(tr.pos[0] - x, tr.pos[1] - y)
+      if (d < bd) {
+        bd = d
+        best = [tr.pos[0], tr.pos[1]]
+      }
+    }
+    if (!best && t - this.huntSoundT < this.P.huntSoundS)
+      best = [x + Math.cos(this.huntBearing) * this.huntDist, y + Math.sin(this.huntBearing) * this.huntDist]
+    if (!best || Math.hypot(best[0] - zNow.x, best[1] - zNow.y) > zNow.r * 0.92) return null
+    if (Math.hypot(best[0] - x, best[1] - y) < 8) return null
+    return best
   }
 
   /** A supply drop worth the risk in a free-for-all: close, and no other mech tracked near it. */
