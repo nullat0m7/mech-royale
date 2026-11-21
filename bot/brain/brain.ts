@@ -265,7 +265,7 @@ export class Brain {
       goal = cov
       fightTarget = target
       wantBoost = true
-    } else if (hpFrac < P.reengageHp && (this.state === "retreat" || this.state === "regen")) {
+    } else if (hpFrac < P.reengageHp && (this.state === "retreat" || this.state === "regen" || (P.idleRegen && t - this.lastHitT > 1.5 && !target))) {
       mode = "regen"
       silent = true
       face = [x + Math.cos(this.lastHitBearing) * 50, y + Math.sin(this.lastHitBearing) * 50]
@@ -700,6 +700,9 @@ export class Brain {
     if (kinds.includes("laser")) pref = P.rangeLaser
     if (kinds.includes("mortar") && !kinds.includes("gun") && !kinds.includes("laser")) pref = P.rangeMortar
     if (kinds.includes("lightning") && (tg.kind !== "mech" || d < 70 || !kinds.includes("laser"))) pref = P.rangeLightning
+    // stay out of a lightning carrier's 45 m arc when we can hit from range
+    const tr = this.tracks.get(tg.id)
+    if (tg.kind === "mech" && tr?.weapons.includes("lightning") && (kinds.includes("gun") || kinds.includes("laser")) && P.avoidLightning) pref = Math.max(pref, 60)
     if (tg.kind === "npc") pref = Math.max(pref, 50)
     if (tg.kind === "crate") pref = Math.min(Math.max(pref, 20), 40)
     // fight from a spot where the target can be shot but other hostiles can't see us

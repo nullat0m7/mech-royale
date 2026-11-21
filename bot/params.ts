@@ -16,10 +16,14 @@ export const P = {
   /** Retreat to cover below this HP fraction; fight again above reengage. */
   retreatHp: 0.4,
   reengageHp: 0.85,
+  /** Hide and regenerate below reengageHp whenever nothing is in view (not only after a retreat). */
+  idleRegen: true,
+  /** Keep at least 60 m from a target carrying lightning when we have a gun or laser. */
+  avoidLightning: true,
   /** Each extra hostile with a line of fire on us adds this to the retreat threshold. */
-  retreatPerExtra: 0.15,
+  retreatPerExtra: 0.3,
   /** With this many hostile mechs tracked, fight only above `outnumberedHp`. */
-  outnumbered: 3,
+  outnumbered: 2,
   outnumberedHp: 0.75,
   /** Target choice: weight of target HP (per point) and bonus (meters) for staying on the current target. */
   targetHpWeight: 0.15,
@@ -37,8 +41,8 @@ export const P = {
   lootRange: 170,
   cubeRange: 90,
   /** Engagement range keeping by main weapon (meters). */
-  rangeGun: 75,
-  rangeLaser: 120,
+  rangeGun: 170,
+  rangeLaser: 210,
   rangeLightning: 28,
   rangeMortar: 110,
   /** Supply drops: go when nothing hostile is in sight and our ETA is within this many seconds of landing. */
