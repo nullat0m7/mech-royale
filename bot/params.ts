@@ -47,6 +47,8 @@ export const P = {
   /** A* budget: at most one search per decision, only if less than this many ms were used, at most this many cells. */
   pathBudgetMs: 12,
   pathExpand: 25000,
+  /** A walkable region smaller than this many 2 m cells is a pocket: jet out of it toward the goal. */
+  pocketCells: 3000,
   /** Boost when the goal is farther than this and energy is above `boostOn` (stop below `boostOff`). */
   boostDist: 50,
   boostOn: 55,

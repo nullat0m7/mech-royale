@@ -318,6 +318,17 @@ export class Brain {
       if (d > P.boostDist) wantBoost = true
       if (silent && d < 6) move = [move[0] * 0.4, move[1] * 0.4]
     }
+    // trapped in a small enclosed region with the goal outside it: jet over the wall toward the goal
+    let climbing = false
+    const here = this.nav.comp[this.nav.cell(x, y)]
+    const climbGoal = goal ?? (zoneTarget as number[] | null)
+    if (here && this.nav.compSize[here] < P.pocketCells && climbGoal && !this.nav.reachable(x, y, climbGoal[0], climbGoal[1])) {
+      climbing = true
+      mode = "climb"
+      this.state = mode
+      move = this.dirTo(x, y, climbGoal[0], climbGoal[1])
+      act.jump = me.grounded
+    }
     const dodge = this.dodge(obs)
     if (dodge[0] || dodge[1]) move = [move[0] + dodge[0] * 1.6, move[1] + dodge[1] * 1.6]
     const ml = Math.hypot(move[0], move[1])
@@ -326,7 +337,7 @@ export class Brain {
     // energy hysteresis for boosting; keep some energy for unsticking
     if (this.boosting && me.energy < P.boostOff) this.boosting = false
     else if (!this.boosting && me.energy > P.boostOn) this.boosting = true
-    act.boost = wantBoost && this.boosting && ml > 0.3
+    act.boost = (wantBoost && this.boosting && ml > 0.3) || (climbing && me.energy > 5)
 
     // unstick: commanded to move but barely moved for a second
     this.hist.push([x, y, t, ml])
@@ -392,6 +403,7 @@ export class Brain {
       if (gain < P.swapGain) continue
       const d = Math.hypot(p.pos[0] - x, p.pos[1] - y)
       if (d > P.lootRange) continue
+      if (!this.nav.reachable(x, y, p.pos[0], p.pos[1])) continue
       if (Math.abs(p.pos[2] - this.nav.h[this.nav.nearestGround(p.pos[0], p.pos[1], 0)]) > 3 && this.nav.roof[this.nav.cell(p.pos[0], p.pos[1])]) continue // on a roof
       const v = gain / (1 + d / 50)
       if (v > bestV) {
@@ -436,7 +448,7 @@ export class Brain {
     let bd = this.P.cubeRange
     for (const c of obs.cubes) {
       const d = Math.hypot(c.pos[0] - x, c.pos[1] - y)
-      if (d < bd) {
+      if (d < bd && this.nav.reachable(x, y, c.pos[0], c.pos[1])) {
         bd = d
         best = c.pos
       }
@@ -486,6 +498,7 @@ export class Brain {
       const dist = Math.hypot(d.pos[0] - x, d.pos[1] - y)
       if (dist > this.P.dropMaxDist) continue
       if (dist / speed > d.lands_in + this.P.dropSlack) continue
+      if (!this.nav.reachable(x, y, d.pos[0], d.pos[1])) continue
       return d.pos
     }
     return null

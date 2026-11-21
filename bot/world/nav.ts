@@ -18,6 +18,8 @@ export class Nav {
   roof: Uint8Array // 1 = surface is a prism top above step height (reachable only by jetting)
   wall: Uint8Array // 1 = a wall (impassable climb) next to this cell
   blocked: Uint8Array // 1 = never stand here (map edge, manual blacklist)
+  comp: Int32Array // connected region id (cells mutually walkable), 0 = none
+  compSize: Int32Array // cells per region id
   stepUp: number
   slopeTan: number
   // A* scratch
@@ -77,6 +79,36 @@ export class Nav {
             }
           }
       }
+    // regions of cells that can walk to each other both ways
+    this.comp = new Int32Array(n)
+    const queue = new Int32Array(n)
+    let label = 0
+    for (let k0 = 0; k0 < n; k0++) {
+      if (this.comp[k0] || this.blocked[k0] || this.roof[k0]) continue
+      label++
+      let head = 0, tail = 0
+      queue[tail++] = k0
+      this.comp[k0] = label
+      while (head < tail) {
+        const k = queue[head++]
+        const i = k % this.nx, j = (k / this.nx) | 0
+        for (let dj = -1; dj <= 1; dj++)
+          for (let di = -1; di <= 1; di++) {
+            if ((!di && !dj) || (di && dj)) continue
+            const ii = i + di, jj = j + dj
+            if (ii < 0 || jj < 0 || ii >= this.nx || jj >= this.ny) continue
+            const m = jj * this.nx + ii
+            if (this.comp[m] || this.roof[m]) continue
+            if (this.passable(k, m, CELL) && this.passable(m, k, CELL)) {
+              this.comp[m] = label
+              queue[tail++] = m
+            }
+          }
+      }
+    }
+    this.compSize = new Int32Array(label + 1)
+    for (let k = 0; k < n; k++) this.compSize[this.comp[k]]++
+    this.compSize[0] = 0
     this.g = new Float32Array(n)
     this.parent = new Int32Array(n)
     this.seen = new Uint32Array(n)
@@ -129,6 +161,32 @@ export class Nav {
     return k0
   }
 
+  /** Can a mech standing at (ax, ay) walk to (bx, by)? (same region, allowing a cell of slack at the goal) */
+  reachable(ax: number, ay: number, bx: number, by: number): boolean {
+    const c = this.comp[this.cell(ax, ay)]
+    if (!c) return true // on a roof or unknown: assume yes, A* will try
+    for (const [dx, dy] of [[0, 0], [2, 0], [-2, 0], [0, 2], [0, -2]]) if (this.comp[this.cell(bx + dx, by + dy)] === c) return true
+    return false
+  }
+
+  /** Nearest cell to (x, y) in region `comp` (0 = any ground cell), searching rings out to `maxR` cells. */
+  snap(x: number, y: number, comp: number, maxR = 60): number {
+    if (!comp) return this.nearestGround(x, y, maxR)
+    const k0 = this.cell(x, y)
+    if (this.comp[k0] === comp && !this.blocked[k0]) return k0
+    const i0 = this.ci(k0), j0 = this.cj(k0)
+    for (let r = 1; r <= maxR; r++)
+      for (let dj = -r; dj <= r; dj++)
+        for (let di = -r; di <= r; di++) {
+          if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue
+          const i = i0 + di, j = j0 + dj
+          if (i < 0 || j < 0 || i >= this.nx || j >= this.ny) continue
+          const k = j * this.nx + i
+          if (this.comp[k] === comp && !this.blocked[k]) return k
+        }
+    return this.nearestGround(x, y)
+  }
+
   private push(k: number, f: number) {
     let i = this.heapN++
     const H = this.heap, F = this.heapF
@@ -168,7 +226,8 @@ export class Nav {
    */
   path(sx: number, sy: number, tx: number, ty: number, maxExpand = 60000, weight = 1.3): number[] | null {
     const s = this.cell(sx, sy)
-    const t = this.nearestGround(tx, ty)
+    // aim for the reachable cell nearest the goal: our own region when we are in one
+    const t = this.snap(tx, ty, this.comp[s])
     if (++this.gen === 0xffffffff) {
       this.seen.fill(0)
       this.closed.fill(0)

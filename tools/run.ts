@@ -76,7 +76,7 @@ export function playMatch(world: World, nav: Nav, cfg: any, seed: number, mode: 
     if (dtMs > 15 && s.tick > 0) s.log.push(`slow act ${dtMs.toFixed(0)} ms at t=${s.t.toFixed(1)} state ${(ctl as any).bot?.brain?.state}`)
     const b = (ctl as any).bot?.brain
     const tg = b?.curTarget >= 0 ? s.mechs[b.curTarget] : null
-    trace.push(`${s.t.toFixed(1)} ${b?.state ?? "?"} hp${Math.round(m.hp)} vis${obs!.mechs.filter((q) => q.kind === "mech").length} joined${s.mechs.filter((q) => q.joined && q.alive).length}${tg ? ` tgt${tg.id}:${Math.round(tg.hp)}@${Math.round(Math.hypot(tg.pos[0] - m.pos[0], tg.pos[1] - m.pos[1]))}m` : ""} fire${JSON.stringify(a.fire ?? [])} w${m.weapons.map((w) => w?.kind[0] ?? "-").join("")}`)
+    trace.push(`${s.t.toFixed(1)} ${b?.state ?? "?"} hp${Math.round(m.hp)} vis${obs!.mechs.filter((q) => q.kind === "mech").length} joined${s.mechs.filter((q) => q.joined && q.alive).length}${tg ? ` tgt${tg.id}:${Math.round(tg.hp)}@${Math.round(Math.hypot(tg.pos[0] - m.pos[0], tg.pos[1] - m.pos[1]))}m` : ""} fire${JSON.stringify(a.fire ?? [])} @${m.pos.map((v) => v.toFixed(0)).join(",")} mv${(a.move ?? []).map((v: number) => v.toFixed(1)).join(",")} z${s.circle().map((v) => v.toFixed(0)).join(",")} w${m.weapons.map((w) => w?.kind[0] ?? "-").join("")}`)
     if (trace.length > (process.env.TRACE_ALL ? 1e9 : 40)) trace.shift()
     return a
   }
@@ -117,7 +117,7 @@ function summarize(rs: Result[], label: string) {
 
 if (isMainThread) {
   const o = parse(process.argv.slice(2))
-  const seeds = Array.from({ length: o.matches }, (_, i) => o.seed * 1000 + i)
+  const seeds = process.env.SEEDS ? process.env.SEEDS.split(",").map(Number) : Array.from({ length: o.matches }, (_, i) => o.seed * 1000 + i)
   const t0 = performance.now()
   const results: Result[] = []
   if (o.workers <= 1 || o.matches === 1) {
